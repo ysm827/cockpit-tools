@@ -317,6 +317,22 @@ function normalizeOrder(order: PlatformId[]): PlatformId[] {
   return next;
 }
 
+function defaultPlatformOrder(): PlatformId[] {
+  const promoted: PlatformId[] = ['claude', 'claude_cli'];
+  return [
+    ...promoted,
+    ...ALL_PLATFORM_IDS.filter((platformId) => !promoted.includes(platformId)),
+  ];
+}
+
+function defaultSidebarEntryIds(groups: PlatformLayoutGroup[]): PlatformLayoutEntryId[] {
+  return [
+    resolveEntryIdForPlatform('claude', groups),
+    resolveEntryIdForPlatform('antigravity', groups),
+    resolveEntryIdForPlatform('codex', groups),
+  ];
+}
+
 function normalizeHidden(hidden: PlatformId[]): PlatformId[] {
   return sanitizePlatformIds(hidden);
 }

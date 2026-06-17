@@ -13,8 +13,26 @@ import * as qoderService from './qoderService';
 import * as traeService from './traeService';
 import * as workbuddyService from './workbuddyService';
 import * as zedService from './zedService';
+import {
+  isClaudeDesktopOAuthAccount,
+  isClaudeDesktopRuntimeAccount,
+  type ClaudeAccount,
+} from '../types/claude';
 
 type AccountWithId = { id: string };
+
+async function listClaudeDesktopTransferAccounts(): Promise<AccountWithId[]> {
+  const accounts = await claudeService.listClaudeAccounts();
+  return accounts.filter(
+    (account: ClaudeAccount) =>
+      isClaudeDesktopRuntimeAccount(account) && !isClaudeDesktopOAuthAccount(account),
+  );
+}
+
+async function listClaudeCliTransferAccounts(): Promise<AccountWithId[]> {
+  const accounts = await claudeService.listClaudeAccounts();
+  return accounts.filter((account: ClaudeAccount) => !isClaudeDesktopRuntimeAccount(account));
+}
 
 interface TransferAdapter {
   listAccounts: () => Promise<AccountWithId[]>;
@@ -39,12 +57,12 @@ const PLATFORM_ADAPTERS: Record<PlatformId, TransferAdapter> = {
     importFromJson: codexService.importCodexFromJson,
   },
   claude: {
-    listAccounts: claudeService.listClaudeAccounts,
+    listAccounts: listClaudeDesktopTransferAccounts,
     exportAccounts: claudeService.exportClaudeAccounts,
     importFromJson: claudeService.importClaudeFromJson,
   },
   claude_cli: {
-    listAccounts: claudeService.listClaudeAccounts,
+    listAccounts: listClaudeCliTransferAccounts,
     exportAccounts: claudeService.exportClaudeAccounts,
     importFromJson: claudeService.importClaudeFromJson,
   },

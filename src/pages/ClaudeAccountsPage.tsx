@@ -561,6 +561,10 @@ function getClaudeCurrentPlatform(subPlatform: ClaudeSubPlatform): ProviderCurre
   return subPlatform === 'desktop' ? 'claude' : 'claude_cli';
 }
 
+function isClaudeJsonExportableAccount(account: ClaudeAccount): boolean {
+  return !isClaudeDesktopOAuthAccount(account);
+}
+
 export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPageProps) {
   const { t } = useTranslation();
   const claudePlatformId: PlatformId = 'claude';
@@ -650,7 +654,6 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
   const [desktopAccountNameInput, setDesktopAccountNameInput] = useState('');
   const [desktopStarting, setDesktopStarting] = useState(false);
   const [desktopCompleting, setDesktopCompleting] = useState(false);
-  const [desktopImportingLocal, setDesktopImportingLocal] = useState(false);
   const [cliImportingLocal, setCliImportingLocal] = useState(false);
   const [oauthLogin, setOauthLogin] = useState<ClaudeOAuthStartResponse | null>(null);
   const [oauthCallbackInput, setOauthCallbackInput] = useState('');
@@ -836,6 +839,11 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
 
   const currentSubPlatformAccounts = activeSubPlatform === 'desktop' ? desktopAccounts : cliAccounts;
 
+  const exportableAccountIds = useMemo(
+    () => new Set(currentSubPlatformAccounts.filter(isClaudeJsonExportableAccount).map((account) => account.id)),
+    [currentSubPlatformAccounts],
+  );
+
   useEffect(() => {
     writeClaudeApiKeyUsageCache(apiKeyUsageMap);
   }, [apiKeyUsageMap]);
@@ -930,6 +938,16 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
   const selectedVisibleIds = useMemo(
     () => filteredIds.filter((id) => selectedIds.has(id)),
     [filteredIds, selectedIds],
+  );
+
+  const filteredExportableIds = useMemo(
+    () => filteredIds.filter((id) => exportableAccountIds.has(id)),
+    [exportableAccountIds, filteredIds],
+  );
+
+  const selectedExportableIds = useMemo(
+    () => selectedVisibleIds.filter((id) => exportableAccountIds.has(id)),
+    [exportableAccountIds, selectedVisibleIds],
   );
 
   const selectedDeletableIds = useMemo(
@@ -1205,25 +1223,6 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
       setAddModalError(String(error).replace(/^Error:\s*/, ''));
     } finally {
       setImporting(false);
-    }
-  };
-
-  const handleImportDesktopFromLocal = async () => {
-    setDesktopImportingLocal(true);
-    setAddModalError(null);
-    try {
-      const account = await claudeService.importClaudeDesktopFromLocal(desktopAccountNameInput);
-      await store.fetchAccounts();
-      setMessage({
-        text: t('claude.desktopOAuth.localSuccess', '已导入本机 Claude Desktop 登录态：{{name}}', {
-          name: account.email,
-        }),
-      });
-      closeAddModal();
-    } catch (error) {
-      setAddModalError(String(error).replace(/^Error:\s*/, ''));
-    } finally {
-      setDesktopImportingLocal(false);
     }
   };
 
@@ -2052,8 +2051,10 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
   };
 
   const handleExport = async (accountIds: string[]) => {
+    const exportIds = accountIds.filter((id) => exportableAccountIds.has(id));
+    if (exportIds.length === 0) return;
     const fileNameBase = activeSubPlatform === 'desktop' ? 'claude_desktop_accounts' : 'claude_cli_accounts';
-    await exportModal.startExport(accountIds, fileNameBase);
+    await exportModal.startExport(exportIds, fileNameBase);
   };
 
   const handleSubmitAccountNote = async () => {
@@ -2147,6 +2148,7 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
     const isProviderAccount = isApiKey || isDesktopGateway;
     const isDesktopRuntime = isClaudeDesktopRuntimeAccount(account);
     const isClaudeCodeOAuth = !isApiKey && !isDesktopRuntime;
+    const canExportJson = isClaudeJsonExportableAccount(account);
     const isCliSubPlatform = activeSubPlatform === 'cli';
     const isApiKeyUsageLoading =
       isProviderAccount && getClaudeApiKeyUsageState(apiKeyUsageMap, account)?.loading === true;
@@ -2210,13 +2212,15 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
             className={refreshing === account.id || isApiKeyUsageLoading ? 'loading-spinner' : ''}
           />
         </button>
-        <button
-          className={buttonClass}
-          onClick={() => void handleExport([account.id])}
-          title={t('common.shared.export.title', '导出')}
-        >
-          <Upload size={14} />
-        </button>
+        {canExportJson && (
+          <button
+            className={buttonClass}
+            onClick={() => void handleExport([account.id])}
+            title={t('common.shared.export.title', '导出')}
+          >
+            <Upload size={14} />
+          </button>
+        )}
         <button
           className={`${buttonClass} danger`}
           onClick={() =>
@@ -2417,7 +2421,6 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
     apiKeyImporting ||
     desktopStarting ||
     desktopCompleting ||
-    desktopImportingLocal ||
     cliImportingLocal ||
     oauthStarting ||
     oauthCompleting;
@@ -2566,18 +2569,20 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
               >
                 {privacyModeEnabled ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
-              <button
-                className="btn btn-secondary export-btn icon-only"
-                onClick={() => void handleExport(selectedVisibleIds.length > 0 ? selectedVisibleIds : filteredIds)}
-                disabled={exportModal.preparing || filteredAccounts.length === 0}
-                title={
-                  selectedVisibleIds.length > 0
-                    ? `${t('common.shared.export.title', '导出')} (${selectedVisibleIds.length})`
-                    : t('common.shared.export.title', '导出')
-                }
-              >
-                <Upload size={14} />
-              </button>
+              {(selectedVisibleIds.length > 0 ? selectedExportableIds.length > 0 : filteredExportableIds.length > 0) && (
+                <button
+                  className="btn btn-secondary export-btn icon-only"
+                  onClick={() => void handleExport(selectedVisibleIds.length > 0 ? selectedExportableIds : filteredExportableIds)}
+                  disabled={exportModal.preparing}
+                  title={
+                    selectedVisibleIds.length > 0
+                      ? `${t('common.shared.export.title', '导出')} (${selectedExportableIds.length})`
+                      : t('common.shared.export.title', '导出')
+                  }
+                >
+                  <Upload size={14} />
+                </button>
+              )}
               {isDesktopSubPlatform && <QuickSettingsPopover type="claude" />}
             </div>
           </div>
@@ -2638,14 +2643,16 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
                 </div>
                 {selectedVisibleIds.length > 0 && (
                   <div className="codex-overview-selection-actions">
-                    <button
-                      className="btn btn-secondary icon-only"
-                      onClick={() => void handleExport(selectedVisibleIds)}
-                      disabled={exportModal.preparing}
-                      title={`${t('common.shared.export.title', '导出')} (${selectedVisibleIds.length})`}
-                    >
-                      <Upload size={14} />
-                    </button>
+                    {selectedExportableIds.length > 0 && (
+                      <button
+                        className="btn btn-secondary icon-only"
+                        onClick={() => void handleExport(selectedExportableIds)}
+                        disabled={exportModal.preparing}
+                        title={`${t('common.shared.export.title', '导出')} (${selectedExportableIds.length})`}
+                      >
+                        <Upload size={14} />
+                      </button>
+                    )}
                     <button
                       className="btn btn-danger icon-only"
                       onClick={openBatchDeleteConfirm}
@@ -2870,7 +2877,7 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
       )}
 
       {showAddModal && (
-        <div className="modal-overlay" onClick={closeAddModal}>
+        <div className="modal-overlay">
           <div className="modal ghcp-add-modal claude-add-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>
@@ -2937,7 +2944,11 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
                 type="button"
               >
                 <Database size={14} />
-                <span className="modal-tab-label">{t('claude.addTabs.import', '本地/JSON')}</span>
+                <span className="modal-tab-label">
+                  {isDesktopSubPlatform
+                    ? t('settings.transfer.backup.downloadJsonAction', 'JSON')
+                    : t('claude.addTabs.import', '本地/JSON')}
+                </span>
               </button>
             </div>}
             <div className="modal-body">
@@ -3496,41 +3507,36 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
               )}
               {addTab === 'import' && (
                 <div className="add-section">
-                  <div className="add-method-card">
-                    <div className="method-icon">
-                      {isDesktopSubPlatform ? <Database size={20} /> : <Terminal size={20} />}
-                    </div>
-                    <div>
-                      <h3>
-                        {t(
-                          isDesktopSubPlatform ? 'claude.import.localClient' : 'claude.cli.localTitle',
-                          isDesktopSubPlatform ? '导入当前 Desktop' : '导入当前 Claude Code',
+                  {!isDesktopSubPlatform && (
+                    <div className="add-method-card">
+                      <div className="method-icon">
+                        <Terminal size={20} />
+                      </div>
+                      <div>
+                        <h3>{t('claude.cli.localTitle', '导入当前 Claude Code')}</h3>
+                        <p>
+                          {t(
+                            'claude.cli.localDesc',
+                            '读取本机 Claude Code 当前 OAuth 登录态，复制为本工具本地账号快照。',
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => void handleImportCliFromLocal()}
+                        disabled={addModalBusy}
+                      >
+                        {cliImportingLocal ? (
+                          <RefreshCw size={14} className="loading-spinner" />
+                        ) : (
+                          <Download size={14} />
                         )}
-                      </h3>
-                      <p>
-                        {t(
-                          isDesktopSubPlatform ? 'claude.import.localDesc' : 'claude.cli.localDesc',
-                          isDesktopSubPlatform
-                            ? '读取本机官方 Claude Desktop 当前登录态，复制为本工具本地账号快照。'
-                            : '读取本机 Claude Code 当前 OAuth 登录态，复制为本工具本地账号快照。',
-                        )}
-                      </p>
+                        {cliImportingLocal
+                          ? t('common.loading', '加载中...')
+                          : t('claude.desktopOAuth.localAction', '导入')}
+                      </button>
                     </div>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => void (isDesktopSubPlatform ? handleImportDesktopFromLocal() : handleImportCliFromLocal())}
-                      disabled={addModalBusy}
-                    >
-                      {(isDesktopSubPlatform ? desktopImportingLocal : cliImportingLocal) ? (
-                        <RefreshCw size={14} className="loading-spinner" />
-                      ) : (
-                        <Download size={14} />
-                      )}
-                      {(isDesktopSubPlatform ? desktopImportingLocal : cliImportingLocal)
-                        ? t('common.loading', '加载中...')
-                        : t('claude.desktopOAuth.localAction', '导入')}
-                    </button>
-                  </div>
+                  )}
                   <div className="form-group">
                     <label>{t('claude.import.jsonLabel', 'JSON 数据')}</label>
                     <textarea
@@ -3540,7 +3546,7 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
                       placeholder={t(
                         isDesktopSubPlatform ? 'claude.import.desktopJsonPlaceholder' : 'claude.import.cliJsonPlaceholder',
                         isDesktopSubPlatform
-                          ? '粘贴导出的 Claude Desktop 账号 JSON'
+                          ? '粘贴导出的 Claude Desktop Gateway 账号 JSON'
                           : '粘贴导出的 Claude CLI 账号 JSON',
                       )}
                       onChange={(event) => setJsonInput(event.target.value)}
@@ -3603,7 +3609,7 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
       />
 
       {cliLaunchModal && (
-        <div className="modal-overlay" onClick={() => setCliLaunchModal(null)}>
+        <div className="modal-overlay">
           <div className="modal modal-lg" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('instances.launchDialog.title', '启动实例')}</h2>
@@ -3723,7 +3729,7 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
       )}
 
       {deleteConfirm && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('common.delete', '删除')}</h2>
@@ -3753,7 +3759,7 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
       )}
 
       {editingAccountNoteAccount && (
-        <div className="modal-overlay" onClick={closeAccountNoteModal}>
+        <div className="modal-overlay">
           <div className="modal codex-account-note-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('claude.accountNote.title', '账号备注')}</h2>

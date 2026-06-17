@@ -4639,7 +4639,7 @@
       "jsonLabel": "Data JSON",
       "jsonPlaceholder": "Vložte exportovaný JSON účtu Claude",
       "localDesc": "Načte aktuální přihlášení z oficiální aplikace Claude Desktop a zkopíruje ho do tohoto nástroje jako místní snímek účtu.",
-      "desktopJsonPlaceholder": "Vložte exportovaný JSON účtu Claude Desktop",
+      "desktopJsonPlaceholder": "Vložte exportovaný JSON účtu Claude Desktop Gateway",
       "cliJsonPlaceholder": "Vložte exportovaný JSON účtu Claude CLI"
     },
     "deleteCurrentDisabled": "Aktuální účet nelze odstranit",

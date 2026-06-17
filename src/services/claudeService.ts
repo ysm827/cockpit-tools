@@ -185,14 +185,6 @@ export async function listClaudeDesktopGatewayModels(input: {
   });
 }
 
-export async function importClaudeDesktopFromLocal(
-  accountName?: string,
-): Promise<ClaudeAccount> {
-  return await invoke('import_claude_desktop_from_local', {
-    accountName: accountName?.trim() || null,
-  });
-}
-
 export async function importClaudeCliFromLocal(): Promise<ClaudeAccount> {
   return await invoke('import_claude_cli_from_local');
 }

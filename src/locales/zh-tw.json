@@ -4639,7 +4639,7 @@
       "jsonLabel": "JSON 資料",
       "jsonPlaceholder": "貼上匯出的 Claude 帳號 JSON",
       "localDesc": "讀取本機官方 Claude Desktop 目前登入狀態，複製為本工具本機帳號快照。",
-      "desktopJsonPlaceholder": "貼上匯出的 Claude Desktop 帳號 JSON",
+      "desktopJsonPlaceholder": "貼上匯出的 Claude Desktop Gateway 帳號 JSON",
       "cliJsonPlaceholder": "貼上匯出的 Claude CLI 帳號 JSON"
     },
     "deleteCurrentDisabled": "目前帳號不可刪除",

@@ -4639,7 +4639,7 @@
       "jsonLabel": "JSON データ",
       "jsonPlaceholder": "エクスポートした Claude アカウント JSON を貼り付け",
       "localDesc": "この Mac の公式 Claude Desktop の現在のログイン状態を読み取り、このツールのローカルアカウントスナップショットとして保存します。",
-      "desktopJsonPlaceholder": "エクスポートした Claude Desktop アカウント JSON を貼り付け",
+      "desktopJsonPlaceholder": "エクスポートした Claude Desktop Gateway アカウント JSON を貼り付け",
       "cliJsonPlaceholder": "エクスポートした Claude CLI アカウント JSON を貼り付け"
     },
     "deleteCurrentDisabled": "現在のアカウントは削除できません",

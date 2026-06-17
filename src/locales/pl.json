@@ -4639,7 +4639,7 @@
       "jsonLabel": "Dane JSON",
       "jsonPlaceholder": "Wklej wyeksportowany JSON konta Claude",
       "localDesc": "Odczytuje bieżące logowanie z oficjalnej aplikacji Claude Desktop i kopiuje je do tego narzędzia jako lokalny zrzut konta.",
-      "desktopJsonPlaceholder": "Wklej wyeksportowany JSON konta Claude Desktop",
+      "desktopJsonPlaceholder": "Wklej wyeksportowany JSON konta Claude Desktop Gateway",
       "cliJsonPlaceholder": "Wklej wyeksportowany JSON konta Claude CLI"
     },
     "deleteCurrentDisabled": "Nie można usunąć bieżącego konta",

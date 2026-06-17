@@ -4639,7 +4639,7 @@
       "jsonLabel": "JSON verisi",
       "jsonPlaceholder": "Dışa aktarılan Claude hesap JSON verisini yapıştırın",
       "localDesc": "Resmi Claude Desktop uygulamasındaki mevcut oturumu okur ve bu araca yerel hesap anlık görüntüsü olarak kopyalar.",
-      "desktopJsonPlaceholder": "Dışa aktarılan Claude Desktop hesap JSON’unu yapıştırın",
+      "desktopJsonPlaceholder": "Dışa aktarılan Claude Desktop Gateway hesap JSON’unu yapıştırın",
       "cliJsonPlaceholder": "Dışa aktarılan Claude CLI hesap JSON’unu yapıştırın"
     },
     "deleteCurrentDisabled": "Geçerli hesap silinemez",

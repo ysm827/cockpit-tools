@@ -4638,7 +4638,7 @@
       "localClient": "导入当前 Desktop",
       "jsonLabel": "JSON 数据",
       "jsonPlaceholder": "粘贴导出的 Claude 账号 JSON",
-      "desktopJsonPlaceholder": "粘贴导出的 Claude Desktop 账号 JSON",
+      "desktopJsonPlaceholder": "粘贴导出的 Claude Desktop Gateway 账号 JSON",
       "cliJsonPlaceholder": "粘贴导出的 Claude CLI 账号 JSON",
       "localDesc": "读取本机官方 Claude Desktop 当前登录态，复制为本工具本地账号快照。"
     },

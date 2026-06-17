@@ -4639,7 +4639,7 @@
       "jsonLabel": "Данные JSON",
       "jsonPlaceholder": "Вставьте экспортированный JSON аккаунта Claude",
       "localDesc": "Читает текущий вход в официальном Claude Desktop и копирует его в этот инструмент как локальный снимок аккаунта.",
-      "desktopJsonPlaceholder": "Вставьте экспортированный JSON аккаунта Claude Desktop",
+      "desktopJsonPlaceholder": "Вставьте экспортированный JSON аккаунта Claude Desktop Gateway",
       "cliJsonPlaceholder": "Вставьте экспортированный JSON аккаунта Claude CLI"
     },
     "deleteCurrentDisabled": "Текущий аккаунт нельзя удалить",

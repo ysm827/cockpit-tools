@@ -4639,7 +4639,7 @@
       "jsonLabel": "بيانات JSON",
       "jsonPlaceholder": "الصق JSON حساب Claude المصدّر",
       "localDesc": "يقرأ حالة تسجيل الدخول الحالية من تطبيق Claude Desktop الرسمي وينسخها في هذه الأداة كلقطة حساب محلية.",
-      "desktopJsonPlaceholder": "الصق JSON حساب Claude Desktop المصدّر",
+      "desktopJsonPlaceholder": "الصق JSON حساب Claude Desktop Gateway المصدّر",
       "cliJsonPlaceholder": "الصق JSON حساب Claude CLI المصدّر"
     },
     "deleteCurrentDisabled": "لا يمكن حذف الحساب الحالي",

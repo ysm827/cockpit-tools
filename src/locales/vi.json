@@ -4639,7 +4639,7 @@
       "jsonLabel": "Dữ liệu JSON",
       "jsonPlaceholder": "Dán JSON tài khoản Claude đã xuất",
       "localDesc": "Đọc trạng thái đăng nhập hiện tại của ứng dụng Claude Desktop chính thức và sao chép thành bản chụp tài khoản cục bộ trong công cụ này.",
-      "desktopJsonPlaceholder": "Dán JSON tài khoản Claude Desktop đã xuất",
+      "desktopJsonPlaceholder": "Dán JSON tài khoản Claude Desktop Gateway đã xuất",
       "cliJsonPlaceholder": "Dán JSON tài khoản Claude CLI đã xuất"
     },
     "deleteCurrentDisabled": "Không thể xóa tài khoản hiện tại",

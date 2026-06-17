@@ -550,16 +550,6 @@ pub fn claude_oauth_login_cancel(login_id: Option<String>) -> Result<(), String>
 }
 
 #[tauri::command]
-pub async fn import_claude_desktop_from_local(
-    app: AppHandle,
-    account_name: Option<String>,
-) -> Result<ClaudeAccount, String> {
-    let account = claude_account::import_desktop_from_local(account_name.as_deref())?;
-    let _ = crate::modules::tray::update_tray_menu(&app);
-    Ok(account)
-}
-
-#[tauri::command]
 pub async fn import_claude_cli_from_local(app: AppHandle) -> Result<ClaudeAccount, String> {
     let account = claude_account::import_cli_from_local()?;
     let _ = crate::modules::tray::update_tray_menu(&app);

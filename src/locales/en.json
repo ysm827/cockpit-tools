@@ -4638,7 +4638,7 @@
       "localClient": "Import current Desktop",
       "jsonLabel": "JSON data",
       "jsonPlaceholder": "Paste exported Claude account JSON",
-      "desktopJsonPlaceholder": "Paste exported Claude Desktop account JSON",
+      "desktopJsonPlaceholder": "Paste exported Claude Desktop Gateway account JSON",
       "cliJsonPlaceholder": "Paste exported Claude CLI account JSON",
       "localDesc": "Reads the current official Claude Desktop sign-in state and copies it into this tool as a local account snapshot."
     },

@@ -584,7 +584,6 @@ export function SideNav({
         '经典布局会展示完整平台导航并支持折叠。你仍可在“设置 > 通用 > 侧边栏布局”中随时切换回原始布局。',
       ),
       width: 'sm',
-      closeOnOverlay: false,
       content: (
         <div className="side-nav-layout-switch-modal-content">
           <label className="side-nav-layout-switch-remember">

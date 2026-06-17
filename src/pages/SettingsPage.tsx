@@ -5978,7 +5978,7 @@ export function SettingsPage() {
         </div>
       </div>
       {releaseHistoryOpen && (
-        <div className="modal-overlay" onClick={handleCloseReleaseHistory}>
+        <div className="modal-overlay">
           <div className="modal settings-release-history-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('settings.about.releaseHistoryTitle', '更新记录')}</h2>

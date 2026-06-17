@@ -59,6 +59,11 @@ import * as qoderService from './qoderService';
 import * as traeService from './traeService';
 import * as workbuddyService from './workbuddyService';
 import type { InstanceLaunchMode } from '../types/instance';
+import {
+  isClaudeDesktopOAuthAccount,
+  isClaudeDesktopRuntimeAccount,
+  type ClaudeAccount,
+} from '../types/claude';
 
 const DATA_TRANSFER_SCHEMA = 'cockpit-tools.data-transfer';
 const DATA_TRANSFER_VERSION = 1;
@@ -85,6 +90,21 @@ type TransferAccountRecord = Record<string, unknown> & { id: string };
 type AccountLoader = () => Promise<TransferAccountRecord[]>;
 type LegacyFormat = 'data_bundle' | 'account_bundle' | 'legacy_account_json';
 type DataTransferWarningCode = 'accounts_section_missing' | 'config_section_missing';
+
+async function listClaudeDesktopTransferAccounts(): Promise<TransferAccountRecord[]> {
+  const accounts = await claudeService.listClaudeAccounts();
+  return accounts.filter(
+    (account: ClaudeAccount) =>
+      isClaudeDesktopRuntimeAccount(account) && !isClaudeDesktopOAuthAccount(account),
+  ) as unknown as TransferAccountRecord[];
+}
+
+async function listClaudeCliTransferAccounts(): Promise<TransferAccountRecord[]> {
+  const accounts = await claudeService.listClaudeAccounts();
+  return accounts.filter(
+    (account: ClaudeAccount) => !isClaudeDesktopRuntimeAccount(account),
+  ) as unknown as TransferAccountRecord[];
+}
 
 interface RawUserConfig extends Record<string, unknown> {
   auto_switch_selected_account_ids?: string[];
@@ -264,8 +284,8 @@ const ACCOUNT_LOADERS: Record<PlatformId, AccountLoader> = {
   antigravity_ide: async () =>
     (await accountService.listAccounts()) as unknown as TransferAccountRecord[],
   codex: async () => (await codexService.listCodexAccounts()) as unknown as TransferAccountRecord[],
-  claude: async () => (await claudeService.listClaudeAccounts()) as unknown as TransferAccountRecord[],
-  claude_cli: async () => (await claudeService.listClaudeAccounts()) as unknown as TransferAccountRecord[],
+  claude: listClaudeDesktopTransferAccounts,
+  claude_cli: listClaudeCliTransferAccounts,
   zed: async () => (await zedService.listZedAccounts()) as unknown as TransferAccountRecord[],
   'github-copilot': async () =>
     (await githubCopilotService.listGitHubCopilotAccounts()) as unknown as TransferAccountRecord[],

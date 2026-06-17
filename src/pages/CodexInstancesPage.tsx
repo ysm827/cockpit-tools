@@ -472,7 +472,6 @@ export function CodexInstancesContent({
       {showSyncSettingsModal && (
         <div
           className="codex-sync-settings-overlay"
-          onClick={() => setShowSyncSettingsModal(false)}
         >
           <div
             className="codex-sync-settings-modal"
@@ -576,7 +575,7 @@ export function CodexInstancesContent({
       )}
 
       {launchModal && (
-        <div className="modal-overlay" onClick={() => setLaunchModal(null)}>
+        <div className="modal-overlay">
           <div
             className="modal modal-lg"
             onClick={(event) => event.stopPropagation()}

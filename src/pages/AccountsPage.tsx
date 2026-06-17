@@ -3814,11 +3814,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       {antigravitySeamlessSwitchUnlocked && showSwitchHistoryModal && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            if (switchHistoryClearing || switchHistoryClearConfirmOpen) return
-            setShowSwitchHistoryModal(false)
-            setSwitchHistoryClearConfirmOpen(false)
-          }}
         >
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -3967,10 +3962,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       {antigravitySeamlessSwitchUnlocked && showSwitchHistoryModal && switchHistoryClearConfirmOpen && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            if (switchHistoryClearing) return
-            setSwitchHistoryClearConfirmOpen(false)
-          }}
         >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -4014,11 +4005,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       {deleteConfirm && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            if (deleting) return
-            setDeleteConfirm(null)
-            setDeleteConfirmError(null)
-          }}
         >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -4065,11 +4051,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       {groupDeleteConfirm && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            if (deletingGroup) return
-            setGroupDeleteConfirm(null)
-            setGroupDeleteError(null)
-          }}
         >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -4120,11 +4101,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       {tagDeleteConfirm && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            if (deletingTag) return
-            setTagDeleteConfirm(null)
-            setTagDeleteConfirmError(null)
-          }}
         >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -4188,7 +4164,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
           return (
             <div
               className="modal-overlay"
-              onClick={() => setShowQuotaModal(null)}
             >
               <div
                 className="modal modal-lg"
@@ -4285,7 +4260,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
           return (
             <div
               className="modal-overlay"
-              onClick={() => setShowErrorModal(null)}
             >
               <div
                 className="modal modal-lg"
@@ -4374,7 +4348,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
           return (
             <div
               className="modal-overlay"
-              onClick={() => setShowVerificationErrorModal(null)}
             >
               <div
                 className="modal modal-lg"

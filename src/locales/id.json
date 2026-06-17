@@ -4639,7 +4639,7 @@
       "jsonLabel": "Data JSON",
       "jsonPlaceholder": "Tempel JSON akun Claude yang diekspor",
       "localDesc": "Membaca status masuk Claude Desktop resmi saat ini dan menyalinnya sebagai snapshot akun lokal di alat ini.",
-      "desktopJsonPlaceholder": "Tempel JSON akun Claude Desktop yang diekspor",
+      "desktopJsonPlaceholder": "Tempel JSON akun Claude Desktop Gateway yang diekspor",
       "cliJsonPlaceholder": "Tempel JSON akun Claude CLI yang diekspor"
     },
     "deleteCurrentDisabled": "Akun saat ini tidak dapat dihapus",

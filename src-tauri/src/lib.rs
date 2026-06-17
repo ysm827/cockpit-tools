@@ -416,7 +416,6 @@ pub fn run() {
             commands::claude::claude_oauth_login_start,
             commands::claude::claude_oauth_login_complete,
             commands::claude::claude_oauth_login_cancel,
-            commands::claude::import_claude_desktop_from_local,
             commands::claude::import_claude_cli_from_local,
             commands::claude::claude_desktop_login_start,
             commands::claude::claude_desktop_login_complete,

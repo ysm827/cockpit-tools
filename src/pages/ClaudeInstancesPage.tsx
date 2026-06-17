@@ -232,7 +232,7 @@ export function ClaudeInstancesContent({
       />
 
       {launchModal && (
-        <div className="modal-overlay" onClick={() => setLaunchModal(null)}>
+        <div className="modal-overlay">
           <div className="modal modal-lg" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <button

@@ -9820,7 +9820,6 @@ export function CodexAccountsPage() {
     return (
       <div
         className="modal-overlay"
-        onClick={() => setApiKeyUsageDetailAccountId(null)}
       >
         <div
           className="modal-content cockpit-api-panel-modal codex-api-key-usage-detail-modal"
@@ -10039,7 +10038,6 @@ export function CodexAccountsPage() {
     return (
       <div
         className="modal-overlay"
-        onClick={() => setCockpitApiPanelAccountId(null)}
       >
         <div
           className="modal-content cockpit-api-panel-modal"
@@ -10681,11 +10679,6 @@ export function CodexAccountsPage() {
       {externalImportProgress.visible && (
         <div
           className="modal-overlay codex-external-import-overlay"
-          onClick={() => {
-            if (!externalImportRunning) {
-              closeExternalImportProgressModal();
-            }
-          }}
         >
           <div
             className="modal-content codex-external-import-modal"
@@ -12209,7 +12202,7 @@ export function CodexAccountsPage() {
           )}
 
           {quickSwitchAccountId && (
-            <div className="modal-overlay" onClick={closeQuickSwitchModal}>
+            <div className="modal-overlay">
               <div
                 className="modal-content codex-add-modal codex-api-key-edit-modal"
                 onClick={(e) => e.stopPropagation()}
@@ -12367,7 +12360,7 @@ export function CodexAccountsPage() {
           )}
 
           {oauthBindingTargetActive && (
-            <div className="modal-overlay" onClick={closeOAuthBindingModal}>
+            <div className="modal-overlay">
               <div
                 className="modal-content codex-add-modal codex-oauth-binding-modal"
                 onClick={(e) => e.stopPropagation()}
@@ -12725,7 +12718,6 @@ export function CodexAccountsPage() {
           {editingApiKeyCredentialsId && (
             <div
               className="modal-overlay"
-              onClick={closeApiKeyCredentialsModal}
             >
               <div
                 className="modal-content codex-add-modal codex-api-key-edit-modal"
@@ -13050,7 +13042,6 @@ export function CodexAccountsPage() {
           {showCustomSortModal && (
             <div
               className="modal-overlay"
-              onClick={() => setShowCustomSortModal(false)}
             >
               <div
                 className="modal codex-custom-sort-modal"
@@ -13283,7 +13274,6 @@ export function CodexAccountsPage() {
           {showLocalAccessQuotaStatsModal && (
             <div
               className="modal-overlay codex-local-access-stats-overlay"
-              onClick={() => setShowLocalAccessQuotaStatsModal(false)}
             >
               <div
                 className="modal codex-local-access-stats-modal"
@@ -13505,7 +13495,6 @@ export function CodexAccountsPage() {
           {deleteConfirm && (
             <div
               className="modal-overlay"
-              onClick={() => !deleting && setDeleteConfirm(null)}
             >
               <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
@@ -13548,7 +13537,6 @@ export function CodexAccountsPage() {
           {tagDeleteConfirm && (
             <div
               className="modal-overlay"
-              onClick={() => !deletingTag && setTagDeleteConfirm(null)}
             >
               <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
@@ -13602,11 +13590,6 @@ export function CodexAccountsPage() {
           {groupDeleteConfirm && (
             <div
               className="modal-overlay"
-              onClick={() => {
-                if (deletingGroup) return;
-                setGroupDeleteConfirm(null);
-                setGroupDeleteError(null);
-              }}
             >
               <div
                 className="modal"
@@ -13671,7 +13654,7 @@ export function CodexAccountsPage() {
           />
 
           {editingAccountNoteAccount && (
-            <div className="modal-overlay" onClick={closeAccountNoteModal}>
+            <div className="modal-overlay">
               <div
                 className="modal codex-account-note-modal"
                 onClick={(event) => event.stopPropagation()}
@@ -13857,7 +13840,6 @@ export function CodexAccountsPage() {
       {apiSwitchNoticeContext && (
         <div
           className="modal-overlay codex-local-access-hide-confirm-overlay"
-          onClick={closeApiSwitchVisibilityNotice}
         >
           <div
             className="modal codex-local-access-hide-confirm-modal codex-api-switch-notice-modal"

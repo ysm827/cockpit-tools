@@ -2749,7 +2749,6 @@ export function InstancesManager<TAccount extends AccountLike>({
       {initGuideInstance && (
         <div
           className="modal-overlay"
-          onClick={() => setInitGuideInstance(null)}
         >
           <div
             className="modal instance-init-guide-modal"
@@ -2815,7 +2814,6 @@ export function InstancesManager<TAccount extends AccountLike>({
       {deleteConfirmInstance && (
         <div
           className="modal-overlay"
-          onClick={() => setDeleteConfirmInstance(null)}
         >
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
@@ -2861,7 +2859,6 @@ export function InstancesManager<TAccount extends AccountLike>({
       {runningNoticeInstance && (
         <div
           className="modal-overlay"
-          onClick={() => setRunningNoticeInstance(null)}
         >
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
@@ -2908,7 +2905,7 @@ export function InstancesManager<TAccount extends AccountLike>({
       )}
 
       {showModal && (
-        <div className="modal-overlay" onClick={closeModal}>
+        <div className="modal-overlay">
           <div
             className="modal modal-lg instance-editor-modal"
             onClick={(e) => e.stopPropagation()}

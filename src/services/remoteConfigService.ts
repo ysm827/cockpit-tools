@@ -24,6 +24,7 @@ type RemoteConfigStateRaw = {
 };
 
 const DEFAULT_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const NEVER_REMOTE_HIDE_PLATFORM_IDS = new Set<PlatformId>(['claude', 'claude_cli']);
 
 function normalizePlatformIds(value: unknown): PlatformId[] {
   if (!Array.isArray(value)) return [];
@@ -58,14 +59,25 @@ function normalizeAppliedRules(value: unknown): RemoteConfigAppliedRule[] {
 
 function normalizeRemoteConfigState(raw: RemoteConfigStateRaw): RemoteConfigState {
   const refreshIntervalMs = Number(raw.refreshIntervalMs ?? raw.refresh_interval_ms);
+  const hiddenPlatformIds = normalizePlatformIds(
+    raw.hiddenPlatformIds ?? raw.hidden_platform_ids,
+  ).filter((platformId) => !NEVER_REMOTE_HIDE_PLATFORM_IDS.has(platformId));
+  const appliedRules = normalizeAppliedRules(raw.appliedRules ?? raw.applied_rules)
+    .map((rule) => ({
+      ...rule,
+      platformIds: rule.platformIds.filter(
+        (platformId) => !NEVER_REMOTE_HIDE_PLATFORM_IDS.has(platformId),
+      ),
+    }))
+    .filter((rule) => rule.platformIds.length > 0);
   return {
     version: typeof raw.version === 'string' ? raw.version : '',
     updatedAt: Number(raw.updatedAt ?? raw.updated_at) || 0,
     currentOs: typeof (raw.currentOs ?? raw.current_os) === 'string'
       ? String(raw.currentOs ?? raw.current_os)
       : '',
-    hiddenPlatformIds: normalizePlatformIds(raw.hiddenPlatformIds ?? raw.hidden_platform_ids),
-    appliedRules: normalizeAppliedRules(raw.appliedRules ?? raw.applied_rules),
+    hiddenPlatformIds,
+    appliedRules,
     refreshIntervalMs:
       Number.isFinite(refreshIntervalMs) && refreshIntervalMs >= 60_000
         ? refreshIntervalMs

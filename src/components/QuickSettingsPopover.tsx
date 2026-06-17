@@ -1770,7 +1770,7 @@ export function QuickSettingsPopover({ type }: QuickSettingsPopoverProps) {
   };
 
   const overlayContent = isOpen ? (
-    <div className="qs-overlay" onClick={(e) => { if (e.target === e.currentTarget) setIsOpen(false); }}>
+    <div className="qs-overlay">
       <div className="qs-modal" ref={modalRef}>
         <div className="qs-header">
           <span className="qs-title">{getTitle()}</span>

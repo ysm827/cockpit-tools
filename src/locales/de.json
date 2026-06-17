@@ -4639,7 +4639,7 @@
       "jsonLabel": "JSON-Daten",
       "jsonPlaceholder": "Exportiertes Claude-Konto-JSON einfügen",
       "localDesc": "Liest den aktuellen Anmeldestatus der offiziellen Claude Desktop App und speichert ihn als lokalen Kontoschnappschuss in diesem Tool.",
-      "desktopJsonPlaceholder": "Exportiertes Claude Desktop-Konto-JSON einfügen",
+      "desktopJsonPlaceholder": "Exportiertes Claude Desktop Gateway-Konto-JSON einfügen",
       "cliJsonPlaceholder": "Exportiertes Claude CLI-Konto-JSON einfügen"
     },
     "deleteCurrentDisabled": "Aktuelles Konto kann nicht gelöscht werden",

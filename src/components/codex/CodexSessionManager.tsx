@@ -886,7 +886,7 @@ export function CodexSessionManager() {
       ) : null}
 
       {showSyncTargetModal ? (
-        <div className="modal-overlay" onClick={handleCloseSyncTargetModal}>
+        <div className="modal-overlay">
           <div className="modal codex-session-target-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('codex.sessionManager.targetModal.title', '复制到实例')}</h2>
@@ -973,7 +973,7 @@ export function CodexSessionManager() {
       />
 
       {showRestoreModal ? (
-        <div className="modal-overlay" onClick={handleCloseRestoreModal}>
+        <div className="modal-overlay">
           <div className="modal codex-session-restore-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('codex.sessionManager.restoreModal.title', '恢复会话')}</h2>

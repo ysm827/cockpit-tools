@@ -735,6 +735,9 @@ pub fn list_accounts_checked() -> Result<Vec<ClaudeAccount>, String> {
             if slim_claude_account_snapshots(&mut account) {
                 should_save = true;
             }
+            if normalize_cached_desktop_quota_from_raw(&mut account) {
+                should_save = true;
+            }
             if should_save {
                 if let Err(error) = save_account_and_index(account.clone()) {
                     logger::log_warn(&format!(
@@ -4655,17 +4658,6 @@ fn import_desktop_profile_snapshot(
     save_account_and_index(account)
 }
 
-pub fn import_desktop_from_local(account_name: Option<&str>) -> Result<ClaudeAccount, String> {
-    let was_running = is_claude_desktop_running();
-    let source_dir = get_default_claude_desktop_user_data_dir()?;
-    quit_claude_desktop_for_profile_write()?;
-    let result = import_desktop_profile_snapshot(&source_dir, account_name, "local_desktop");
-    if was_running {
-        launch_default_claude_desktop();
-    }
-    result
-}
-
 pub fn import_cli_from_local() -> Result<ClaudeAccount, String> {
     let config_dir = get_default_claude_code_config_dir()?;
     let credentials_raw = read_claude_code_credentials(&config_dir);
@@ -4801,6 +4793,13 @@ pub fn cancel_desktop_login(login_id: Option<&str>) -> Result<(), String> {
 }
 
 fn parse_import_item(value: &Value) -> Result<ClaudeAccount, String> {
+    if is_desktop_oauth_json_import(value) {
+        return Err(
+            "Claude Desktop 普通登录态依赖本机 profile 快照，不支持 JSON 导入，请重新登录 Desktop 或改用 Desktop Gateway。"
+                .to_string(),
+        );
+    }
+
     if value
         .get("auth_mode")
         .or_else(|| value.get("authMode"))
@@ -5123,6 +5122,49 @@ fn parse_import_item(value: &Value) -> Result<ClaudeAccount, String> {
             }
         });
     upsert_account_from_snapshots(credentials_raw, config_raw)
+}
+
+fn is_desktop_oauth_mode_value(mode: &str) -> bool {
+    mode.eq_ignore_ascii_case("desktop_oauth")
+        || mode.eq_ignore_ascii_case("desktop_o_auth")
+        || mode.eq_ignore_ascii_case("desktopOAuth")
+}
+
+fn is_desktop_oauth_json_import(value: &Value) -> bool {
+    if value
+        .get("auth_mode")
+        .or_else(|| value.get("authMode"))
+        .and_then(|item| item.as_str())
+        .map(is_desktop_oauth_mode_value)
+        .unwrap_or(false)
+    {
+        return true;
+    }
+
+    if value.get("desktop_profile_dir").is_some()
+        || value.get("desktopProfileDir").is_some()
+        || value.get("desktop_profile_imported_at").is_some()
+        || value.get("desktopProfileImportedAt").is_some()
+    {
+        return true;
+    }
+
+    if value
+        .get("claude_credentials_raw")
+        .or_else(|| value.get("claudeCredentialsRaw"))
+        .and_then(|item| item.get("authMode"))
+        .and_then(|item| item.as_str())
+        .map(is_desktop_oauth_mode_value)
+        .unwrap_or(false)
+    {
+        return true;
+    }
+
+    value
+        .get("claude_config_raw")
+        .or_else(|| value.get("claudeConfigRaw"))
+        .and_then(|item| item.get("desktopProfile"))
+        .is_some()
 }
 
 pub fn import_from_json(json_content: &str) -> Result<Vec<ClaudeAccount>, String> {
@@ -5712,12 +5754,25 @@ fn is_desktop_plan_placeholder(value: &str) -> bool {
 }
 
 fn normalize_desktop_usage_percentage(value: f64) -> i32 {
-    let scaled = if value > 0.0 && value <= 1.0 {
+    let scaled = if value > 0.0 && value < 1.0 {
         value * 100.0
     } else {
         value
     };
     clamp_percentage(Some(scaled))
+}
+
+fn quota_matches(left: &ClaudeQuota, right: &ClaudeQuota) -> bool {
+    left.five_hour_percentage == right.five_hour_percentage
+        && left.five_hour_reset_time == right.five_hour_reset_time
+        && left.seven_day_percentage == right.seven_day_percentage
+        && left.seven_day_reset_time == right.seven_day_reset_time
+        && left.seven_day_sonnet_percentage == right.seven_day_sonnet_percentage
+        && left.seven_day_sonnet_reset_time == right.seven_day_sonnet_reset_time
+        && left.extra_usage_percentage == right.extra_usage_percentage
+        && left.extra_usage_reset_time == right.extra_usage_reset_time
+        && left.extra_usage_used_cents == right.extra_usage_used_cents
+        && left.extra_usage_limit_cents == right.extra_usage_limit_cents
 }
 
 // ============================================================================
@@ -6212,6 +6267,27 @@ fn desktop_web_usage_to_quota(profile: &Value) -> Option<ClaudeQuota> {
     })
 }
 
+fn normalize_cached_desktop_quota_from_raw(account: &mut ClaudeAccount) -> bool {
+    if account.auth_mode != ClaudeAuthMode::DesktopOAuth {
+        return false;
+    }
+    let Some(raw) = account.claude_usage_raw.as_ref() else {
+        return false;
+    };
+    let Some(quota) = desktop_web_usage_to_quota(raw) else {
+        return false;
+    };
+    let changed = account
+        .quota
+        .as_ref()
+        .map(|current| !quota_matches(current, &quota))
+        .unwrap_or(true);
+    if changed {
+        account.quota = Some(quota);
+    }
+    changed
+}
+
 fn desktop_web_profile_summary(profile: &Value) -> Value {
     let email = first_string_path_candidates(
         Some(profile),
@@ -6594,6 +6670,7 @@ pub fn export_accounts(account_ids: &[String]) -> Result<String, String> {
     let accounts: Vec<ClaudeAccount> = account_ids
         .iter()
         .filter_map(|id| load_account_file(id))
+        .filter(|account| account.auth_mode != ClaudeAuthMode::DesktopOAuth)
         .collect();
     serde_json::to_string_pretty(&accounts).map_err(|e| format!("序列化导出 JSON 失败: {}", e))
 }
@@ -7636,6 +7713,30 @@ mod tests {
     }
 
     #[test]
+    fn rejects_desktop_oauth_json_import() {
+        let error = parse_import_item(&serde_json::json!({
+            "id": "claude_desktop_alice",
+            "email": "alice@testmail.dev",
+            "auth_mode": "desktop_oauth",
+            "desktop_profile_dir": "/tmp/claude-desktop-snapshot",
+            "claude_credentials_raw": {
+                "authMode": "desktop_oauth",
+                "profileSnapshot": true
+            },
+            "claude_config_raw": {
+                "desktopProfile": {
+                    "snapshotDir": "/tmp/claude-desktop-snapshot"
+                }
+            },
+            "created_at": 10,
+            "last_used": 20
+        }))
+        .expect_err("desktop oauth account JSON should be rejected");
+
+        assert!(error.contains("不支持 JSON 导入"));
+    }
+
+    #[test]
     fn derives_oauth_plan_from_subscription_type_before_billing_source() {
         let credentials = serde_json::json!({
             "claudeAiOauth": {
@@ -7775,6 +7876,28 @@ mod tests {
         assert_eq!(quota.seven_day_sonnet_percentage, Some(12));
         assert!(quota.five_hour_reset_time.is_some());
         assert!(quota.seven_day_sonnet_reset_time.is_some());
+    }
+
+    #[test]
+    fn desktop_usage_percentage_one_is_one_percent() {
+        let profile = serde_json::json!({
+            "endpoints": {
+                "organizationUsage": {
+                    "five_hour": {
+                        "utilization": 1,
+                        "resets_at": "2026-06-17T19:20:00Z"
+                    },
+                    "sevenDay": {
+                        "utilization": 0.01,
+                        "resetsAt": 1781366400
+                    }
+                }
+            }
+        });
+
+        let quota = desktop_web_usage_to_quota(&profile).expect("usage should produce quota");
+        assert_eq!(quota.five_hour_percentage, 1);
+        assert_eq!(quota.seven_day_percentage, 1);
     }
 
     #[test]

@@ -4868,7 +4868,6 @@ export function CodexApiServicePage() {
       {testDialogOpen && (
         <div
           className="modal-overlay codex-local-access-test-dialog-overlay"
-          onClick={handleCloseTestDialog}
         >
           <div
             className="modal codex-local-access-test-dialog"

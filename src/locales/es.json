@@ -4639,7 +4639,7 @@
       "jsonLabel": "Datos JSON",
       "jsonPlaceholder": "Pega el JSON de cuenta Claude exportado",
       "localDesc": "Lee la sesión actual de la app oficial Claude Desktop y la copia en esta herramienta como instantánea de cuenta local.",
-      "desktopJsonPlaceholder": "Pega el JSON exportado de la cuenta Claude Desktop",
+      "desktopJsonPlaceholder": "Pega el JSON exportado de la cuenta Claude Desktop Gateway",
       "cliJsonPlaceholder": "Pega el JSON exportado de la cuenta Claude CLI"
     },
     "deleteCurrentDisabled": "La cuenta actual no se puede eliminar",

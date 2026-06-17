@@ -1833,7 +1833,6 @@ export function CodexLocalAccessModal({
         className={`modal-overlay codex-local-access-modal-overlay${
           isMembersMode ? "" : " codex-local-access-modal-overlay-panel"
         }`}
-        onClick={onClose}
       >
         <div
           className={`modal codex-local-access-modal${
@@ -2868,7 +2867,6 @@ export function CodexLocalAccessModal({
       {customRoutingOpen && collection && (
         <div
           className="modal-overlay codex-local-access-custom-routing-overlay"
-          onClick={closeCustomRoutingDialog}
         >
           <div
             className="modal codex-local-access-custom-routing-dialog"
@@ -3224,7 +3222,6 @@ export function CodexLocalAccessModal({
       {testDialogOpen && (
         <div
           className="modal-overlay codex-local-access-test-dialog-overlay"
-          onClick={closeTestDialog}
         >
           <div
             className="modal codex-local-access-test-dialog"

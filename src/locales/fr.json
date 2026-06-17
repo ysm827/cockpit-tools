@@ -4639,7 +4639,7 @@
       "jsonLabel": "Données JSON",
       "jsonPlaceholder": "Collez le JSON de compte Claude exporté",
       "localDesc": "Lit la session actuelle de l’application officielle Claude Desktop et la copie comme instantané de compte local dans cet outil.",
-      "desktopJsonPlaceholder": "Collez le JSON exporté du compte Claude Desktop",
+      "desktopJsonPlaceholder": "Collez le JSON exporté du compte Claude Desktop Gateway",
       "cliJsonPlaceholder": "Collez le JSON exporté du compte Claude CLI"
     },
     "deleteCurrentDisabled": "Le compte actuel ne peut pas être supprimé",

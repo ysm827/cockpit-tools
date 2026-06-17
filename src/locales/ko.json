@@ -4639,7 +4639,7 @@
       "jsonLabel": "JSON 데이터",
       "jsonPlaceholder": "내보낸 Claude 계정 JSON 붙여넣기",
       "localDesc": "이 컴퓨터의 공식 Claude Desktop 현재 로그인 상태를 읽어 이 도구의 로컬 계정 스냅샷으로 복사합니다.",
-      "desktopJsonPlaceholder": "내보낸 Claude Desktop 계정 JSON 붙여넣기",
+      "desktopJsonPlaceholder": "내보낸 Claude Desktop Gateway 계정 JSON 붙여넣기",
       "cliJsonPlaceholder": "내보낸 Claude CLI 계정 JSON 붙여넣기"
     },
     "deleteCurrentDisabled": "현재 계정은 삭제할 수 없습니다",

@@ -2299,7 +2299,6 @@ function MainApp() {
           '当前账号配额已达到预警阈值，请尽快处理。'
         ),
         width: 'md',
-        closeOnOverlay: false,
         content: (
           <div className="quota-alert-modal-content">
             <div className="quota-alert-modal-row">

@@ -4639,7 +4639,7 @@
       "jsonLabel": "Dati JSON",
       "jsonPlaceholder": "Incolla il JSON account Claude esportato",
       "localDesc": "Legge lo stato di accesso corrente dell’app ufficiale Claude Desktop e lo copia in questo strumento come snapshot locale dell’account.",
-      "desktopJsonPlaceholder": "Incolla il JSON esportato dell’account Claude Desktop",
+      "desktopJsonPlaceholder": "Incolla il JSON esportato dell’account Claude Desktop Gateway",
       "cliJsonPlaceholder": "Incolla il JSON esportato dell’account Claude CLI"
     },
     "deleteCurrentDisabled": "L’account corrente non può essere eliminato",

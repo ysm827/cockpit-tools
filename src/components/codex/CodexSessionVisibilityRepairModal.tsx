@@ -407,7 +407,6 @@ export function CodexSessionVisibilityRepairModal({
   return (
     <div
       className="modal-overlay codex-local-access-hide-confirm-overlay"
-      onClick={closeModal}
     >
       <div
         className="modal codex-local-access-hide-confirm-modal codex-api-switch-notice-modal"

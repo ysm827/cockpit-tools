@@ -2056,7 +2056,6 @@ export function GeminiAccountsPage() {
           {deleteConfirm && (
             <div
               className="modal-overlay"
-              onClick={() => !deleting && setDeleteConfirm(null)}
             >
               <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
@@ -2099,7 +2098,6 @@ export function GeminiAccountsPage() {
           {tagDeleteConfirm && (
             <div
               className="modal-overlay"
-              onClick={() => !deletingTag && setTagDeleteConfirm(null)}
             >
               <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
@@ -2161,7 +2159,7 @@ export function GeminiAccountsPage() {
           />
 
           {launchModal && (
-            <div className="modal-overlay" onClick={() => setLaunchModal(null)}>
+            <div className="modal-overlay">
               <div
                 className="modal modal-lg"
                 onClick={(e) => e.stopPropagation()}
