@@ -106,6 +106,18 @@ async function listClaudeCliTransferAccounts(): Promise<TransferAccountRecord[]>
   ) as unknown as TransferAccountRecord[];
 }
 
+async function listClaudeManagerTransferAccounts(): Promise<TransferAccountRecord[]> {
+  const accounts = await claudeService.listClaudeAccounts();
+  const seen = new Set<string>();
+  return accounts.filter((account: ClaudeAccount) => {
+    if (!account.id || seen.has(account.id)) {
+      return false;
+    }
+    seen.add(account.id);
+    return true;
+  }) as unknown as TransferAccountRecord[];
+}
+
 interface RawUserConfig extends Record<string, unknown> {
   auto_switch_selected_account_ids?: string[];
   codex_auto_switch_selected_account_ids?: string[];
@@ -286,6 +298,7 @@ const ACCOUNT_LOADERS: Record<PlatformId, AccountLoader> = {
   codex: async () => (await codexService.listCodexAccounts()) as unknown as TransferAccountRecord[],
   claude: listClaudeDesktopTransferAccounts,
   claude_cli: listClaudeCliTransferAccounts,
+  claude_manager: listClaudeManagerTransferAccounts,
   zed: async () => (await zedService.listZedAccounts()) as unknown as TransferAccountRecord[],
   'github-copilot': async () =>
     (await githubCopilotService.listGitHubCopilotAccounts()) as unknown as TransferAccountRecord[],
@@ -307,6 +320,7 @@ const LEGACY_IMPORTERS: Record<PlatformId, ((jsonContent: string) => Promise<unk
   codex: codexService.importCodexFromJson,
   claude: claudeService.importClaudeFromJson,
   claude_cli: claudeService.importClaudeFromJson,
+  claude_manager: claudeService.importClaudeFromJson,
   zed: zedService.importZedFromJson,
   'github-copilot': githubCopilotService.importGitHubCopilotFromJson,
   windsurf: windsurfService.importWindsurfFromJson,

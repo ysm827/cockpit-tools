@@ -127,6 +127,9 @@ const DASHBOARD_DEFERRED_PREFETCH_BATCH_DELAY_MS = 1200;
 let dashboardStartupPrefetched = false;
 
 function normalizeDashboardCardPlatformId(platformId: PlatformId): PlatformId {
+  if (platformId === 'claude' || platformId === 'claude_cli') {
+    return 'claude_manager';
+  }
   return platformId === 'antigravity_ide' ? 'antigravity' : platformId;
 }
 
@@ -245,6 +248,7 @@ export function DashboardPage({
         case 'codex':
           await useCodexAccountStore.getState().updateAccountTags(accountId, newTags);
           break;
+        case 'claude_manager':
         case 'claude':
           await useClaudeAccountStore.getState().updateAccountTags(accountId, newTags);
           break;
@@ -2188,7 +2192,7 @@ export function DashboardPage({
       isRefreshing: refreshing.has(account.id),
       isSwitching: switching.has(account.id),
       maxMetrics: 3,
-      onEditTags: () => setTagModalState({ accountId: account.id, platform: 'claude', tags: account.tags || [] }),
+      onEditTags: () => setTagModalState({ accountId: account.id, platform: 'claude_manager', tags: account.tags || [] }),
     });
   };
 
@@ -2394,6 +2398,7 @@ export function DashboardPage({
     antigravity: stats.antigravity,
     antigravity_ide: stats.antigravity,
     codex: stats.codex,
+    claude_manager: stats.claude,
     claude: stats.claude,
     claude_cli: stats.claude,
     zed: stats.zed,
@@ -2420,8 +2425,10 @@ export function DashboardPage({
         const countPlatformId =
           platformId === 'antigravity_ide'
             ? 'antigravity'
+            : platformId === 'claude'
+              ? 'claude_manager'
             : platformId === 'claude_cli'
-              ? 'claude'
+              ? 'claude_manager'
               : platformId;
         if (countedPlatformIds.has(countPlatformId)) {
           return sum;
@@ -2589,7 +2596,7 @@ export function DashboardPage({
       );
     }
 
-    if (platformId === 'claude') {
+    if (platformId === 'claude_manager' || platformId === 'claude') {
       return (
         <div className="main-card codex-card" key={platformId}>
           <div className="main-card-header">

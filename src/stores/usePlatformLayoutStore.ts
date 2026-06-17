@@ -19,7 +19,6 @@ const TRAY_MIGRATED_PLATFORM_IDS: PlatformId[] = [
 ];
 const DEFAULT_CODEBUDDY_GROUP_ID = 'codebuddy-suite';
 const DEFAULT_ANTIGRAVITY_GROUP_ID = 'antigravity-suite';
-const DEFAULT_CLAUDE_GROUP_ID = 'claude-suite';
 
 const PLATFORM_ENTRY_PREFIX = 'platform:';
 const GROUP_ENTRY_PREFIX = 'group:';
@@ -138,6 +137,9 @@ export function parsePlatformEntryId(entryId: string): PlatformId | null {
     return null;
   }
   const value = entryId.slice(PLATFORM_ENTRY_PREFIX.length);
+  if (value === 'claude' || value === 'claude_cli') {
+    return 'claude_manager';
+  }
   if (!ALL_PLATFORM_IDS.includes(value as PlatformId)) {
     return null;
   }
@@ -270,18 +272,6 @@ function defaultPlatformGroups(): PlatformLayoutGroup[] {
       ],
     },
     {
-      id: DEFAULT_CLAUDE_GROUP_ID,
-      name: 'Claude',
-      platformIds: ['claude', 'claude_cli'],
-      defaultPlatformId: 'claude',
-      iconKind: 'platform',
-      iconPlatformId: 'claude',
-      childConfigs: [
-        { platformId: 'claude', name: 'Claude Desktop' },
-        { platformId: 'claude_cli', name: 'Claude CLI' },
-      ],
-    },
-    {
       id: DEFAULT_CODEBUDDY_GROUP_ID,
       name: 'CodeBuddy',
       platformIds: ['codebuddy', 'codebuddy_cn', 'workbuddy'],
@@ -298,8 +288,10 @@ function sanitizePlatformIds(list: unknown): PlatformId[] {
   const result: PlatformId[] = [];
   for (const item of list) {
     if (typeof item !== 'string') continue;
-    if (!ALL_PLATFORM_IDS.includes(item as PlatformId)) continue;
-    const id = item as PlatformId;
+    const id = item === 'claude' || item === 'claude_cli'
+      ? 'claude_manager'
+      : item as PlatformId;
+    if (!ALL_PLATFORM_IDS.includes(id)) continue;
     if (seen.has(id)) continue;
     seen.add(id);
     result.push(id);
@@ -318,7 +310,7 @@ function normalizeOrder(order: PlatformId[]): PlatformId[] {
 }
 
 function defaultPlatformOrder(): PlatformId[] {
-  const promoted: PlatformId[] = ['claude', 'claude_cli'];
+  const promoted: PlatformId[] = ['claude_manager'];
   return [
     ...promoted,
     ...ALL_PLATFORM_IDS.filter((platformId) => !promoted.includes(platformId)),
@@ -327,7 +319,7 @@ function defaultPlatformOrder(): PlatformId[] {
 
 function defaultSidebarEntryIds(groups: PlatformLayoutGroup[]): PlatformLayoutEntryId[] {
   return [
-    resolveEntryIdForPlatform('claude', groups),
+    resolveEntryIdForPlatform('claude_manager', groups),
     resolveEntryIdForPlatform('antigravity', groups),
     resolveEntryIdForPlatform('codex', groups),
   ];
@@ -410,6 +402,9 @@ function normalizeGroupName(raw: unknown, fallbackPlatform: PlatformId): string 
   if (fallbackPlatform === 'zed') {
     return 'Zed';
   }
+  if (fallbackPlatform === 'claude_manager') {
+    return 'Claude';
+  }
   if (fallbackPlatform === 'claude') {
     return 'Claude Desktop';
   }
@@ -453,8 +448,8 @@ function normalizeGroupChildName(raw: unknown, platformId: PlatformId): string |
   if (platformId === 'antigravity_ide' && value === 'Antigravity') {
     return 'Antigravity IDE';
   }
-  if (platformId === 'claude' && value === 'Claude') {
-    return 'Claude Desktop';
+  if (platformId === 'claude_manager' && (value === 'Claude Desktop' || value === 'Claude CLI')) {
+    return 'Claude';
   }
   return value;
 }
@@ -525,6 +520,13 @@ function normalizePlatformGroups(raw: unknown, fallbackToDefault: boolean): Plat
     if (usedGroupIds.has(groupId)) {
       groupId = `${groupId}-${index + 1}`;
     }
+    const rawPlatformIds = Array.isArray(record.platformIds) ? record.platformIds : [];
+    const isLegacyClaudeGroup =
+      rawPlatformIds.some((platformId) => platformId === 'claude' || platformId === 'claude_cli')
+      && rawPlatformIds.every((platformId) => platformId === 'claude' || platformId === 'claude_cli');
+    if (isLegacyClaudeGroup) {
+      return;
+    }
 
     const platformIds = sanitizePlatformIds(record.platformIds).filter((platformId) => {
       if (usedPlatformIds.has(platformId)) {
@@ -585,31 +587,6 @@ function normalizePlatformGroups(raw: unknown, fallbackToDefault: boolean): Plat
         antigravityGroup.platformIds,
       );
       usedPlatformIds.add('antigravity_ide');
-    }
-  }
-
-  if (!usedPlatformIds.has('claude_cli')) {
-    const claudeGroup = result.find((group) => group.platformIds.includes('claude'));
-    if (claudeGroup) {
-      claudeGroup.platformIds = Array.from(new Set([...claudeGroup.platformIds, 'claude_cli']));
-      if (!claudeGroup.platformIds.includes(claudeGroup.defaultPlatformId)) {
-        claudeGroup.defaultPlatformId = 'claude';
-      }
-      if (claudeGroup.name === 'Claude Desktop' || claudeGroup.name === 'Claude CLI') {
-        claudeGroup.name = 'Claude';
-      }
-      if (claudeGroup.iconKind !== 'custom') {
-        claudeGroup.iconPlatformId = 'claude';
-      }
-      claudeGroup.childConfigs = normalizeGroupChildConfigs(
-        [
-          ...(claudeGroup.childConfigs ?? []),
-          { platformId: 'claude', name: 'Claude Desktop' },
-          { platformId: 'claude_cli', name: 'Claude CLI' },
-        ],
-        claudeGroup.platformIds,
-      );
-      usedPlatformIds.add('claude_cli');
     }
   }
 
@@ -1100,7 +1077,7 @@ function loadPersistedState(): NormalizedLayoutStateData {
       const defaults = normalizeStateData({
         orderedPlatformIds: defaultOrder,
         hiddenPlatformIds: [],
-        sidebarPlatformIds: ['claude', 'antigravity', 'codex'],
+        sidebarPlatformIds: ['claude_manager', 'antigravity', 'codex'],
         trayPlatformIds: defaultOrder,
         traySortMode: 'auto',
         platformGroups: defaultGroups,
@@ -1121,7 +1098,7 @@ function loadPersistedState(): NormalizedLayoutStateData {
     const orderedPlatformIds = normalizeOrder(parsed.orderedPlatformIds ?? defaultPlatformOrder());
     const hiddenPlatformIds = normalizeHidden(parsed.hiddenPlatformIds ?? []);
     const sidebarPlatformIds = normalizeSidebar(
-      parsed.sidebarPlatformIds ?? ['claude', 'antigravity', 'codex'],
+      parsed.sidebarPlatformIds ?? ['claude_manager', 'antigravity', 'codex'],
       hiddenPlatformIds,
     );
 
@@ -1176,7 +1153,7 @@ function loadPersistedState(): NormalizedLayoutStateData {
     return normalizeStateData({
       orderedPlatformIds: defaultOrder,
       hiddenPlatformIds: [],
-      sidebarPlatformIds: ['claude', 'antigravity', 'codex'],
+      sidebarPlatformIds: ['claude_manager', 'antigravity', 'codex'],
       trayPlatformIds: defaultOrder,
       traySortMode: 'auto',
       platformGroups: defaultGroups,
@@ -1710,7 +1687,7 @@ export const usePlatformLayoutStore = create<PlatformLayoutState>((set, get) => 
     const next = normalizeStateData({
       orderedPlatformIds: defaultOrder,
       hiddenPlatformIds: [],
-      sidebarPlatformIds: ['claude', 'antigravity', 'codex'],
+      sidebarPlatformIds: ['claude_manager', 'antigravity', 'codex'],
       trayPlatformIds: defaultOrder,
       traySortMode: 'auto',
       platformGroups: defaults,

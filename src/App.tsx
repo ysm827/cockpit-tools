@@ -380,7 +380,7 @@ function getQuotaAlertPlatformLabel(
     case 'codex':
       return t('nav.codex', 'Codex');
     case 'claude':
-      return t('nav.claude', 'Claude Desktop');
+      return t('nav.claude', 'Claude');
     case 'github_copilot':
       return t('nav.githubCopilot', 'GitHub Copilot');
     case 'windsurf':

@@ -24,7 +24,7 @@ type RemoteConfigStateRaw = {
 };
 
 const DEFAULT_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
-const NEVER_REMOTE_HIDE_PLATFORM_IDS = new Set<PlatformId>(['claude', 'claude_cli']);
+const NEVER_REMOTE_HIDE_PLATFORM_IDS = new Set<PlatformId>(['claude_manager']);
 
 function normalizePlatformIds(value: unknown): PlatformId[] {
   if (!Array.isArray(value)) return [];
@@ -32,8 +32,10 @@ function normalizePlatformIds(value: unknown): PlatformId[] {
   const result: PlatformId[] = [];
   for (const item of value) {
     if (typeof item !== 'string') continue;
-    if (!ALL_PLATFORM_IDS.includes(item as PlatformId)) continue;
-    const platformId = item as PlatformId;
+    const platformId = item === 'claude' || item === 'claude_cli' || item === 'claude-desktop' || item === 'claude-code'
+      ? 'claude_manager'
+      : item as PlatformId;
+    if (!ALL_PLATFORM_IDS.includes(platformId)) continue;
     if (seen.has(platformId)) continue;
     seen.add(platformId);
     result.push(platformId);

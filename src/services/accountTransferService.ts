@@ -34,6 +34,18 @@ async function listClaudeCliTransferAccounts(): Promise<AccountWithId[]> {
   return accounts.filter((account: ClaudeAccount) => !isClaudeDesktopRuntimeAccount(account));
 }
 
+async function listClaudeManagerTransferAccounts(): Promise<AccountWithId[]> {
+  const accounts = await claudeService.listClaudeAccounts();
+  const seen = new Set<string>();
+  return accounts.filter((account: ClaudeAccount) => {
+    if (!account.id || seen.has(account.id)) {
+      return false;
+    }
+    seen.add(account.id);
+    return true;
+  });
+}
+
 interface TransferAdapter {
   listAccounts: () => Promise<AccountWithId[]>;
   exportAccounts: (accountIds: string[]) => Promise<string>;
@@ -63,6 +75,11 @@ const PLATFORM_ADAPTERS: Record<PlatformId, TransferAdapter> = {
   },
   claude_cli: {
     listAccounts: listClaudeCliTransferAccounts,
+    exportAccounts: claudeService.exportClaudeAccounts,
+    importFromJson: claudeService.importClaudeFromJson,
+  },
+  claude_manager: {
+    listAccounts: listClaudeManagerTransferAccounts,
     exportAccounts: claudeService.exportClaudeAccounts,
     importFromJson: claudeService.importClaudeFromJson,
   },

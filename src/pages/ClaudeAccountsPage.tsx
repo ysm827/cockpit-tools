@@ -567,7 +567,7 @@ function isClaudeJsonExportableAccount(account: ClaudeAccount): boolean {
 
 export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPageProps) {
   const { t } = useTranslation();
-  const claudePlatformId: PlatformId = 'claude';
+  const claudePlatformId: PlatformId = 'claude_manager';
   const routeInitialSection: ClaudePageSection = subPlatform === 'cli' ? 'cli' : 'desktop';
   const [activeSection, setActiveSection] = useState<ClaudePageSection>(routeInitialSection);
   const activeSubPlatform: ClaudeSubPlatform = activeSection === 'cli' ? 'cli' : 'desktop';

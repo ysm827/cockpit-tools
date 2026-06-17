@@ -139,6 +139,9 @@ type FloatingCardInstanceStoreApi = Pick<
 function loadInitialPlatform(): PlatformId {
   try {
     const saved = localStorage.getItem(FLOATING_CARD_PLATFORM_STORAGE_KEY);
+    if (saved === 'claude' || saved === 'claude_cli') {
+      return 'claude_manager';
+    }
     if (saved && ALL_PLATFORM_IDS.includes(saved as PlatformId)) {
       return saved as PlatformId;
     }
@@ -171,6 +174,7 @@ function resolveInstanceStoreApi(platformId: PlatformId): FloatingCardInstanceSt
       return useInstanceStore.getState();
     case 'codex':
       return useCodexInstanceStore.getState();
+    case 'claude_manager':
     case 'claude':
       return useClaudeInstanceStore.getState();
     case 'claude_cli':
@@ -416,6 +420,7 @@ export function FloatingCardWindow() {
             useCodexAccountStore.getState().fetchCurrentAccount(),
           ]);
           break;
+        case 'claude_manager':
         case 'claude':
         case 'claude_cli':
           await Promise.allSettled([
@@ -749,6 +754,11 @@ export function FloatingCardWindow() {
           accounts: codexAccounts,
           actualCurrentAccount: codexCurrent,
         };
+      case 'claude_manager':
+        return {
+          accounts: claudeAccounts,
+          actualCurrentAccount: resolveCurrentAccountById(claudeAccounts, claudeCurrentId),
+        };
       case 'claude':
         return {
           accounts: claudeDesktopAccounts,
@@ -818,7 +828,9 @@ export function FloatingCardWindow() {
   }, [
     agAccounts,
     agCurrent,
+    claudeAccounts,
     claudeCliAccounts,
+    claudeCurrentId,
     claudeCliCurrent,
     claudeDesktopAccounts,
     claudeDesktopCurrent,
@@ -867,6 +879,8 @@ export function FloatingCardWindow() {
         return getRecommendedAntigravityAccount(agAccounts, effectiveCurrentId);
       case 'codex':
         return getRecommendedCodexAccount(codexAccounts, effectiveCurrentId);
+      case 'claude_manager':
+        return getRecommendedClaudeAccount(claudeAccounts, effectiveCurrentId);
       case 'claude':
         return getRecommendedClaudeAccount(claudeDesktopAccounts, effectiveCurrentId);
       case 'claude_cli':
@@ -896,6 +910,7 @@ export function FloatingCardWindow() {
     }
   }, [
     agAccounts,
+    claudeAccounts,
     claudeCliAccounts,
     claudeDesktopAccounts,
     codebuddyAccounts,
@@ -958,6 +973,7 @@ export function FloatingCardWindow() {
         return buildAntigravityAccountPresentation(viewedAccount as typeof agAccounts[number], displayGroups, t);
       case 'codex':
         return buildCodexAccountPresentation(viewedAccount as typeof codexAccounts[number], t);
+      case 'claude_manager':
       case 'claude':
       case 'claude_cli':
         return buildClaudeAccountPresentation(viewedAccount as typeof claudeAccounts[number], t);
@@ -1046,6 +1062,7 @@ export function FloatingCardWindow() {
           case 'codex':
             await useCodexAccountStore.getState().refreshQuota(viewedAccount.id);
             break;
+          case 'claude_manager':
           case 'claude':
           case 'claude_cli':
             await useClaudeAccountStore.getState().refreshToken(viewedAccount.id);
@@ -1163,6 +1180,7 @@ export function FloatingCardWindow() {
             await useCodexAccountStore.getState().switchAccount(viewedAccount.id);
             await useCodexAccountStore.getState().fetchCurrentAccount();
             break;
+          case 'claude_manager':
           case 'claude':
           case 'claude_cli':
             await useClaudeAccountStore.getState().switchAccount(viewedAccount.id);
