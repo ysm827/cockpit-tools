@@ -4,7 +4,7 @@ import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { LogicalSize } from '@tauri-apps/api/dpi';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
-import { TauriEvent, listen } from '@tauri-apps/api/event';
+import { TauriEvent, emit, listen } from '@tauri-apps/api/event';
 import { useTranslation } from 'react-i18next';
 import {
   buildAntigravityAccountPresentation,
@@ -1173,6 +1173,15 @@ export function FloatingCardWindow() {
       selectAccount(selectedPlatform, viewedAccount.id);
     } catch (error) {
       const rawError = String(error).replace(/^Error:\s*/, '').trim();
+      if (rawError.startsWith('APP_PATH_NOT_FOUND:claude')) {
+        const detail = {
+          app: 'claude',
+          retry: { kind: 'switchAccount', accountId: viewedAccount.id },
+        };
+        await showMainWindowAndNavigate('claude');
+        await emit('app:path_missing', detail);
+        return;
+      }
       const displayError =
         rawError === 'CODEX_STALE_ACCOUNT'
           ? t('codex.authError.staleAccount', {

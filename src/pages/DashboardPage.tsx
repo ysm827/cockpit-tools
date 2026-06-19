@@ -993,6 +993,17 @@ export function DashboardPage({
     try {
       await switchClaudeAccount(accountId);
     } catch (error) {
+      if (String(error ?? '').startsWith('APP_PATH_NOT_FOUND:claude')) {
+        window.dispatchEvent(
+          new CustomEvent('app-path-missing', {
+            detail: {
+              app: 'claude',
+              retry: { kind: 'switchAccount', accountId },
+            },
+          }),
+        );
+        return;
+      }
       console.error('Switch failed:', error);
     } finally {
       setSwitching((prev) => {

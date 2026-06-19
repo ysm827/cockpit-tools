@@ -37,6 +37,8 @@ pub(crate) fn powershell_quote(value: &str) -> String {
 
 #[cfg(target_os = "windows")]
 fn resolve_claude_cli_command() -> String {
+    use std::os::windows::process::CommandExt;
+
     if let Some(user_profile) = std::env::var_os("USERPROFILE") {
         let candidate = Path::new(&user_profile)
             .join(".local")
@@ -47,7 +49,12 @@ fn resolve_claude_cli_command() -> String {
         }
     }
 
-    if let Ok(output) = Command::new("where").arg("claude").output() {
+    if let Ok(output) = Command::new("where")
+        .arg("claude")
+        .creation_flags(0x08000000)
+        .stdin(std::process::Stdio::null())
+        .output()
+    {
         if output.status.success() {
             if let Some(path) = String::from_utf8_lossy(&output.stdout)
                 .lines()
@@ -790,5 +797,13 @@ pub fn switch_claude_account(app: AppHandle, account_id: String) -> Result<Strin
         account.email,
         started_at.elapsed().as_millis()
     ));
-    Ok(format!("切换完成: {}", account.email))
+    let message = match account.auth_mode {
+        ClaudeAuthMode::DesktopGateway => {
+            format!("Claude Desktop 供应商配置已应用: {}", account.email)
+        }
+        ClaudeAuthMode::DesktopOAuth => format!("Claude Desktop 登录态已切换: {}", account.email),
+        ClaudeAuthMode::ApiKey => format!("Claude Code API Key 已应用: {}", account.email),
+        _ => format!("切换完成: {}", account.email),
+    };
+    Ok(message)
 }

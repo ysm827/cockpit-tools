@@ -444,7 +444,7 @@ pub async fn claude_start_instance(
         let extra_args = modules::process::parse_extra_args(&default_settings.extra_args);
         let pid = modules::claude_instance::start_claude_default_with_args_with_new_window(
             &extra_args,
-            true,
+            false,
         )?;
         let _ = modules::claude_instance::update_default_pid(Some(pid))?;
         let running = modules::claude_instance::resolve_claude_pid(Some(pid), None).is_some();

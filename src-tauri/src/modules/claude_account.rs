@@ -989,6 +989,12 @@ struct ClaudeDesktopGatewayConfigPaths {
     config_library_dir: PathBuf,
 }
 
+impl ClaudeDesktopGatewayConfigPaths {
+    fn config_library_meta_path(&self) -> PathBuf {
+        self.config_library_dir.join("_meta.json")
+    }
+}
+
 fn get_default_claude_desktop_threep_user_data_dir(normal_dir: &Path) -> Result<PathBuf, String> {
     if let Ok(value) = std::env::var("CLAUDE_DESKTOP_THREEP_USER_DATA_DIR") {
         let trimmed = value.trim();
@@ -997,19 +1003,30 @@ fn get_default_claude_desktop_threep_user_data_dir(normal_dir: &Path) -> Result<
         }
     }
 
-    if normal_dir
-        .file_name()
-        .and_then(|value| value.to_str())
-        .map(|name| name.eq_ignore_ascii_case("Claude"))
-        .unwrap_or(false)
+    #[cfg(target_os = "windows")]
     {
-        if let Some(parent) = normal_dir.parent() {
-            return Ok(parent.join(CLAUDE_DESKTOP_THREEP_DIR_NAME));
-        }
+        let _ = normal_dir;
+        let local_data_dir = dirs::data_local_dir()
+            .ok_or_else(|| "无法获取系统本地应用数据目录".to_string())?;
+        return Ok(local_data_dir.join(CLAUDE_DESKTOP_THREEP_DIR_NAME));
     }
 
-    let data_dir = dirs::data_dir().ok_or_else(|| "无法获取系统应用数据目录".to_string())?;
-    Ok(data_dir.join(CLAUDE_DESKTOP_THREEP_DIR_NAME))
+    #[cfg(not(target_os = "windows"))]
+    {
+        if normal_dir
+            .file_name()
+            .and_then(|value| value.to_str())
+            .map(|name| name.eq_ignore_ascii_case("Claude"))
+            .unwrap_or(false)
+        {
+            if let Some(parent) = normal_dir.parent() {
+                return Ok(parent.join(CLAUDE_DESKTOP_THREEP_DIR_NAME));
+            }
+        }
+
+        let data_dir = dirs::data_dir().ok_or_else(|| "无法获取系统应用数据目录".to_string())?;
+        Ok(data_dir.join(CLAUDE_DESKTOP_THREEP_DIR_NAME))
+    }
 }
 
 fn desktop_gateway_config_paths_from_dirs(
@@ -1030,6 +1047,62 @@ fn get_default_claude_desktop_gateway_config_paths(
     Ok(desktop_gateway_config_paths_from_dirs(
         &normal_dir,
         &threep_dir,
+    ))
+}
+
+fn validate_desktop_deployment_mode(config_path: &Path, expected_mode: &str) -> Result<(), String> {
+    let config = read_config_file(config_path)?
+        .ok_or_else(|| format!("Claude Desktop 配置未写入: {}", config_path.display()))?;
+    let actual_mode = config
+        .get("deploymentMode")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    if actual_mode.eq_ignore_ascii_case(expected_mode) {
+        return Ok(());
+    }
+    Err(format!(
+        "Claude Desktop deploymentMode 校验失败: path={}, expected={}, actual={}",
+        config_path.display(),
+        expected_mode,
+        actual_mode
+    ))
+}
+
+fn validate_desktop_gateway_meta(meta_path: &Path, expected_config_id: &str) -> Result<(), String> {
+    let meta = read_config_file(meta_path)?
+        .ok_or_else(|| format!("Claude Gateway _meta.json 未写入: {}", meta_path.display()))?;
+    let applied_id = meta
+        .get("appliedId")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    if applied_id != expected_config_id {
+        return Err(format!(
+            "Claude Gateway appliedId 校验失败: path={}, expected={}, actual={}",
+            meta_path.display(),
+            expected_config_id,
+            applied_id
+        ));
+    }
+    let has_entry = meta
+        .get("entries")
+        .and_then(Value::as_array)
+        .map(|entries| {
+            entries.iter().any(|entry| {
+                entry
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .map(|id| id == expected_config_id)
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false);
+    if has_entry {
+        return Ok(());
+    }
+    Err(format!(
+        "Claude Gateway entries 校验失败: path={}, missing_id={}",
+        meta_path.display(),
+        expected_config_id
     ))
 }
 
@@ -4141,9 +4214,16 @@ fn write_desktop_gateway_profile(account: &ClaudeAccount, target_dir: &Path) -> 
     fs::create_dir_all(target_dir)
         .map_err(|e| format!("创建 Claude Gateway profile 失败: {}", e))?;
     write_desktop_deployment_mode(&target_dir.join(CLAUDE_DESKTOP_CONFIG_FILE_NAME), "3p")?;
-    write_desktop_gateway_config_library(
+    let config_id = write_desktop_gateway_config_library(
         account,
         &target_dir.join(CLAUDE_DESKTOP_CONFIG_LIBRARY_DIR),
+    )?;
+    validate_desktop_deployment_mode(&target_dir.join(CLAUDE_DESKTOP_CONFIG_FILE_NAME), "3p")?;
+    validate_desktop_gateway_meta(
+        &target_dir
+            .join(CLAUDE_DESKTOP_CONFIG_LIBRARY_DIR)
+            .join("_meta.json"),
+        &config_id,
     )?;
     Ok(())
 }
@@ -4152,7 +4232,18 @@ fn write_default_desktop_gateway_profile(account: &ClaudeAccount) -> Result<(), 
     let paths = get_default_claude_desktop_gateway_config_paths()?;
     write_desktop_deployment_mode(&paths.normal_config_path, "3p")?;
     write_desktop_deployment_mode(&paths.threep_config_path, "3p")?;
-    write_desktop_gateway_config_library(account, &paths.config_library_dir)?;
+    let config_id = write_desktop_gateway_config_library(account, &paths.config_library_dir)?;
+    validate_desktop_deployment_mode(&paths.normal_config_path, "3p")?;
+    validate_desktop_deployment_mode(&paths.threep_config_path, "3p")?;
+    validate_desktop_gateway_meta(&paths.config_library_meta_path(), &config_id)?;
+    logger::log_info(&format!(
+        "[Claude Gateway] default profile applied: account_id={}, config_id={}, normal_config={}, threep_config={}, config_library={}",
+        account.id,
+        config_id,
+        paths.normal_config_path.display(),
+        paths.threep_config_path.display(),
+        paths.config_library_dir.display()
+    ));
     Ok(())
 }
 
@@ -4161,6 +4252,8 @@ fn restore_default_desktop_gateway_official_config() -> Result<(), String> {
     write_desktop_deployment_mode(&paths.normal_config_path, "1p")?;
     write_desktop_deployment_mode(&paths.threep_config_path, "1p")?;
     remove_gateway_configs_from_config_library(&paths.config_library_dir)?;
+    validate_desktop_deployment_mode(&paths.normal_config_path, "1p")?;
+    validate_desktop_deployment_mode(&paths.threep_config_path, "1p")?;
     Ok(())
 }
 
@@ -5010,6 +5103,9 @@ fn terminate_desktop_auth_helper(pid: Option<u32>) {
     let _ = std::process::Command::new("taskkill")
         .args(["/PID", &pid.to_string(), "/T", "/F"])
         .creation_flags(0x08000000)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .status();
 }
 
@@ -5073,14 +5169,7 @@ fn force_kill_claude_desktop_main_processes() {
 
 #[cfg(target_os = "windows")]
 fn is_claude_desktop_running() -> bool {
-    let output = std::process::Command::new("tasklist")
-        .args(["/FI", "IMAGENAME eq claude.exe", "/NH"])
-        .output();
-    output
-        .ok()
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|stdout| stdout.to_ascii_lowercase().contains("claude.exe"))
-        .unwrap_or(false)
+    crate::modules::claude_instance::resolve_claude_pid(None, None).is_some()
 }
 
 #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
@@ -5146,55 +5235,16 @@ fn quit_claude_desktop_for_profile_write() -> Result<(), String> {
 
 #[cfg(target_os = "windows")]
 fn quit_claude_desktop_for_profile_write() -> Result<(), String> {
-    if !is_claude_desktop_running() {
-        return Ok(());
+    let target_dir = get_default_claude_desktop_user_data_dir()?
+        .to_string_lossy()
+        .to_string();
+    logger::log_info("[Claude] closing configured Claude Desktop before profile write");
+    crate::modules::claude_instance::close_claude(&[target_dir], 8)?;
+    if is_claude_desktop_running() {
+        return Err("Claude is still running, cannot safely write login state. Please quit Claude and retry.".to_string());
     }
-
-    use std::os::windows::process::CommandExt;
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-    logger::log_info("[Claude] closing claude.exe before profile write");
-    let graceful = std::process::Command::new("taskkill")
-        .args(["/IM", "claude.exe", "/T"])
-        .creation_flags(CREATE_NO_WINDOW)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .output();
-    if let Err(error) = graceful {
-        logger::log_warn(&format!("[Claude] graceful taskkill failed: {}", error));
-    }
-
-    for _ in 0..20 {
-        if !is_claude_desktop_running() {
-            std::thread::sleep(std::time::Duration::from_millis(300));
-            return Ok(());
-        }
-        std::thread::sleep(std::time::Duration::from_millis(250));
-    }
-
-    logger::log_warn("[Claude] claude.exe still running; forcing close before profile write");
-    let force = std::process::Command::new("taskkill")
-        .args(["/IM", "claude.exe", "/T", "/F"])
-        .creation_flags(CREATE_NO_WINDOW)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .map_err(|e| format!("退出 Claude 失败: {}", e))?;
-    if !force.status.success() && is_claude_desktop_running() {
-        return Err("Claude 仍在运行，无法安全写入登录态。请先退出 Claude 后重试。".to_string());
-    }
-
-    for _ in 0..20 {
-        if !is_claude_desktop_running() {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            return Ok(());
-        }
-        std::thread::sleep(std::time::Duration::from_millis(250));
-    }
-
-    Err("Claude 仍在运行，无法安全写入登录态。请先退出 Claude 后重试。".to_string())
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    Ok(())
 }
 
 #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
@@ -5206,80 +5256,28 @@ fn quit_claude_desktop_for_profile_write() -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn launch_default_claude_desktop() {
-    let _ = std::process::Command::new("open")
+fn launch_default_claude_desktop() -> Result<(), String> {
+    std::process::Command::new("open")
         .args(["-b", CLAUDE_DESKTOP_BUNDLE_ID_MACOS])
-        .spawn();
-}
-
-#[cfg(target_os = "windows")]
-fn find_windows_claude_start_app_id() -> Option<String> {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-    let output = std::process::Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            "Get-StartApps | Where-Object { $_.Name -eq 'Claude' } | Select-Object -First 1 -ExpandProperty AppID",
-        ])
-        .creation_flags(CREATE_NO_WINDOW)
-        .stdin(std::process::Stdio::null())
-        .output()
-        .ok()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        logger::log_warn(&format!(
-            "[Claude] Get-StartApps failed while resolving Windows launch id: {}",
-            stderr.trim()
-        ));
-        return None;
-    }
-
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(str::trim)
-        .find(|line| line.contains('!'))
-        .map(ToOwned::to_owned)
-}
-
-#[cfg(target_os = "windows")]
-fn launch_default_claude_desktop() {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-    let Some(app_id) = find_windows_claude_start_app_id() else {
-        logger::log_warn("[Claude] Windows Start Apps entry not found; Claude was not relaunched");
-        return;
-    };
-
-    let target = format!(r"shell:AppsFolder\{}", app_id);
-    match std::process::Command::new("explorer.exe")
-        .arg(&target)
-        .creation_flags(CREATE_NO_WINDOW)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
         .spawn()
-    {
-        Ok(child) => logger::log_info(&format!(
-            "[Claude] launched Windows app id {} via explorer.exe pid={}",
-            app_id,
-            child.id()
-        )),
-        Err(error) => logger::log_warn(&format!(
-            "[Claude] failed to launch Windows app id {}: {}",
-            app_id, error
-        )),
-    }
+        .map(|_| ())
+        .map_err(|e| format!("Failed to launch Claude Desktop: {}", e))
+}
+
+#[cfg(target_os = "windows")]
+fn launch_default_claude_desktop() -> Result<(), String> {
+    let pid = crate::modules::claude_instance::start_claude_default_with_args_with_new_window(
+        &[],
+        false,
+    )?;
+    logger::log_info(&format!("[Claude] launched configured Claude Desktop pid={}", pid));
+    Ok(())
 }
 
 #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-fn launch_default_claude_desktop() {}
+fn launch_default_claude_desktop() -> Result<(), String> {
+    Err("APP_PATH_NOT_FOUND:claude".to_string())
+}
 
 fn import_desktop_profile_snapshot(
     source_dir: &Path,
@@ -7901,7 +7899,7 @@ pub fn inject_to_claude_config(account_id: &str, config_dir: Option<&Path>) -> R
         quit_claude_desktop_for_profile_write()?;
         write_default_desktop_gateway_profile(&account)?;
         crate::modules::claude_instance::ensure_claude_launch_path_configured()?;
-        launch_default_claude_desktop();
+        launch_default_claude_desktop()?;
 
         let mut updated = account.clone();
         updated.last_used = now_ts_ms();
@@ -7928,7 +7926,7 @@ pub fn inject_to_claude_config(account_id: &str, config_dir: Option<&Path>) -> R
         let mut updated = account.clone();
         updated.last_used = now_ts_ms();
         save_account_and_index(updated)?;
-        launch_default_claude_desktop();
+        launch_default_claude_desktop()?;
         return Ok(());
     }
     if account.auth_mode == ClaudeAuthMode::ApiKey {

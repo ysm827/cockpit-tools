@@ -128,6 +128,8 @@ interface GeneralConfig {
   opencode_app_path: string;
   antigravity_app_path: string;
   codex_app_path: string;
+  claude_app_path: string;
+  claude_app_scan_roots: string;
   codex_specified_app_path: string;
   vscode_app_path: string;
   windsurf_app_path: string;
@@ -197,6 +199,7 @@ interface GeneralConfig {
 type AppPathTarget =
   | 'antigravity'
   | 'codex'
+  | 'claude'
   | 'vscode'
   | 'opencode'
   | 'windsurf'
@@ -208,6 +211,14 @@ type AppPathTarget =
   | 'trae'
   | 'workbuddy'
   | 'zed';
+
+type ClaudeDesktopLaunchCandidate = {
+  target_type: string;
+  label: string;
+  target: string;
+  source: string;
+  supports_multi_instance: boolean;
+};
 const REFRESH_PRESET_VALUES = ['-1', '2', '5', '10', '15'];
 const CURRENT_ACCOUNT_REFRESH_PRESET_VALUES = ['1', '2', '5', '10', '15'];
 const THRESHOLD_PRESET_VALUES = ['0', '20', '40', '60'];
@@ -392,6 +403,8 @@ export function SettingsPage() {
   const [opencodeAppPath, setOpencodeAppPath] = useState('');
   const [antigravityAppPath, setAntigravityAppPath] = useState('');
   const [codexAppPath, setCodexAppPath] = useState('');
+  const [claudeAppPath, setClaudeAppPath] = useState('');
+  const [claudeAppScanRoots, setClaudeAppScanRoots] = useState('');
   const [codexSpecifiedAppPath, setCodexSpecifiedAppPath] = useState('');
   const [vscodeAppPath, setVscodeAppPath] = useState('');
   const [windsurfAppPath, setWindsurfAppPath] = useState('');
@@ -448,6 +461,7 @@ export function SettingsPage() {
   const [codebuddyCnQuotaAlertThresholdCustomMode, setCodebuddyCnQuotaAlertThresholdCustomMode] = useState(false);
   const [workbuddyQuotaAlertThresholdCustomMode, setWorkbuddyQuotaAlertThresholdCustomMode] = useState(false);
   const [appPathResetDetectingTargets, setAppPathResetDetectingTargets] = useState<Set<AppPathTarget>>(new Set());
+  const [claudeLaunchCandidates, setClaudeLaunchCandidates] = useState<ClaudeDesktopLaunchCandidate[]>([]);
   const [opencodeSyncOnSwitch, setOpencodeSyncOnSwitch] = useState(false);
   const [opencodeAuthOverwriteOnSwitch, setOpencodeAuthOverwriteOnSwitch] = useState(false);
   const [openclawAuthOverwriteOnSwitch, setOpenclawAuthOverwriteOnSwitch] = useState(false);
@@ -847,6 +861,8 @@ export function SettingsPage() {
           opencodeAppPath,
           antigravityAppPath,
           codexAppPath,
+          claudeAppPath,
+          claudeAppScanRoots,
           codexSpecifiedAppPath,
           vscodeAppPath,
           windsurfAppPath,
@@ -975,6 +991,8 @@ export function SettingsPage() {
     opencodeAppPath,
     antigravityAppPath,
     codexAppPath,
+    claudeAppPath,
+    claudeAppScanRoots,
     codexSpecifiedAppPath,
     vscodeAppPath,
     windsurfAppPath,
@@ -1267,6 +1285,9 @@ export function SettingsPage() {
       setOpencodeAppPath(config.opencode_app_path || '');
       setAntigravityAppPath(config.antigravity_app_path || '');
       setCodexAppPath(config.codex_app_path || '');
+      setClaudeAppPath(config.claude_app_path || '');
+      setClaudeAppScanRoots(config.claude_app_scan_roots || '');
+      setClaudeLaunchCandidates([]);
       setCodexSpecifiedAppPath(config.codex_specified_app_path || '');
       setVscodeAppPath(config.vscode_app_path || '');
       setWindsurfAppPath(config.windsurf_app_path || '');
@@ -1456,6 +1477,8 @@ export function SettingsPage() {
       setAntigravityAppPath(path);
     } else if (target === 'codex') {
       setCodexAppPath(path);
+    } else if (target === 'claude') {
+      setClaudeAppPath(path);
     } else if (target === 'vscode') {
       setVscodeAppPath(path);
     } else if (target === 'windsurf') {
@@ -1515,6 +1538,9 @@ export function SettingsPage() {
     if (target === 'opencode') {
       return t('settings.general.opencodePathReset', '重置默认');
     }
+    if (target === 'claude') {
+      return t('appPath.missing.scanApps', '扫描应用');
+    }
     return t('settings.general.codexPathReset', '重置默认');
   };
 
@@ -1556,6 +1582,22 @@ export function SettingsPage() {
       return next;
     });
     try {
+      if (target === 'claude') {
+        const candidates = await invoke<ClaudeDesktopLaunchCandidate[]>(
+          'scan_claude_desktop_launch_targets',
+          {
+            scanRoots: claudeAppScanRoots.trim() || null,
+          },
+        );
+        setClaudeLaunchCandidates(candidates);
+        if (candidates.length === 0) {
+          alert(t(
+            'settings.general.claudeLaunchScanEmpty',
+            '未扫描到 Claude Desktop，请手动选择 Claude.exe 或调整扫描范围。',
+          ));
+        }
+        return;
+      }
       const detected = await invoke<string | null>('detect_app_path', { app: target, force: true });
       setAppPathForTarget(target, detected || '');
     } catch (err) {
@@ -1568,6 +1610,10 @@ export function SettingsPage() {
         return next;
       });
     }
+  };
+
+  const handleSelectClaudeLaunchCandidate = (candidate: ClaudeDesktopLaunchCandidate) => {
+    setClaudeAppPath(candidate.target);
   };
 
   const sanitizeNumberInput = (value: string) => value.replace(/[^\d]/g, '');
@@ -3549,6 +3595,99 @@ export function SettingsPage() {
                   })}
                   {renderCurrentAccountRefreshRow('claude')}
                   {renderAccountLevelRefreshConfig('claude')}
+                  <div className="settings-row settings-row--align-start">
+                    <div className="row-label">
+                      <div className="row-title">
+                        {t('settings.general.claudeAppPath', 'Claude Desktop 启动目标')}
+                      </div>
+                      <div className="row-desc">
+                        {t(
+                          'settings.general.claudeAppPathDesc',
+                          '默认实例可使用 Microsoft Store 应用目标；多开实例请选择真实 Claude.exe。',
+                        )}
+                      </div>
+                    </div>
+                    <div className="row-control row-control--grow settings-claude-launch-control">
+                      <div className="settings-claude-launch-row">
+                        <input
+                          type="text"
+                          className="settings-input settings-input--path"
+                          value={claudeAppPath}
+                          placeholder={t(
+                            'quickSettings.claude.appTargetPlaceholder',
+                            'Claude.exe 路径或 shell:AppsFolder\\...',
+                          )}
+                          onChange={(e) => setClaudeAppPath(e.target.value)}
+                        />
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => handlePickAppPath('claude')}
+                          disabled={isAppPathResetDetecting('claude')}
+                        >
+                          {t('settings.general.codexPathSelect', '选择')}
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => handleResetAppPath('claude')}
+                          disabled={isAppPathResetDetecting('claude')}
+                        >
+                          <RefreshCw
+                            size={16}
+                            className={isAppPathResetDetecting('claude') ? 'spin' : undefined}
+                          />
+                          {isAppPathResetDetecting('claude')
+                            ? t('common.loading', '加载中...')
+                            : getResetLabelByTarget('claude')}
+                        </button>
+                      </div>
+                      <div className="settings-claude-scan-roots">
+                        <label>{t('appPath.missing.scanRoots', '扫描范围')}</label>
+                        <textarea
+                          className="settings-input settings-claude-scan-roots-input"
+                          value={claudeAppScanRoots}
+                          placeholder={t(
+                            'appPath.missing.scanRootsPlaceholder',
+                            '可选，每行一个目录；留空仅扫描常见安装位置和开始菜单应用',
+                          )}
+                          onChange={(e) => setClaudeAppScanRoots(e.target.value)}
+                        />
+                      </div>
+                      {claudeLaunchCandidates.length > 0 ? (
+                        <div className="settings-claude-candidate-list">
+                          {claudeLaunchCandidates.map((candidate) => (
+                            <button
+                              key={`${candidate.target_type}:${candidate.target}`}
+                              type="button"
+                              className={`settings-claude-candidate-item${
+                                claudeAppPath.trim() === candidate.target ? ' selected' : ''
+                              }`}
+                              onClick={() => handleSelectClaudeLaunchCandidate(candidate)}
+                            >
+                              <div className="settings-claude-candidate-main">
+                                <span>{candidate.label || 'Claude Desktop'}</span>
+                                <span className="settings-claude-candidate-badge">
+                                  {candidate.target_type === 'windows_app'
+                                    ? t('appPath.missing.windowsApp', 'Microsoft Store')
+                                    : 'EXE'}
+                                </span>
+                              </div>
+                              <div className="settings-claude-candidate-target">
+                                {candidate.target}
+                              </div>
+                              {!candidate.supports_multi_instance ? (
+                                <div className="settings-claude-candidate-note">
+                                  {t(
+                                    'appPath.missing.defaultOnly',
+                                    '仅适用于默认桌面端；多开实例请选择真实 Claude.exe',
+                                  )}
+                                </div>
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                   {renderPlatformQuotaAlertRows({
                     enabled: claudeQuotaAlertEnabled,
                     setEnabled: setClaudeQuotaAlertEnabled,

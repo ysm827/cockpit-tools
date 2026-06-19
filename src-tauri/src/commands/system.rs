@@ -129,6 +129,8 @@ pub struct GeneralConfig {
     pub codex_app_path: String,
     /// Claude 桌面应用启动路径（为空则使用默认路径）
     pub claude_app_path: String,
+    /// Claude 桌面应用扫描范围（每行一个目录）
+    pub claude_app_scan_roots: String,
     /// 切换 Codex 后需联动重启的指定应用路径
     pub codex_specified_app_path: String,
     /// Zed 启动路径（为空则使用默认路径）
@@ -1982,6 +1984,7 @@ pub fn save_network_config(
         antigravity_app_path: current.antigravity_app_path,
         codex_app_path: current.codex_app_path,
         claude_app_path: current.claude_app_path,
+        claude_app_scan_roots: current.claude_app_scan_roots,
         codex_specified_app_path: current.codex_specified_app_path,
         zed_app_path: current.zed_app_path,
         vscode_app_path: current.vscode_app_path,
@@ -2252,6 +2255,7 @@ pub fn get_general_config(app: tauri::AppHandle) -> Result<GeneralConfig, String
         antigravity_app_path: user_config.antigravity_app_path,
         codex_app_path: user_config.codex_app_path,
         claude_app_path: user_config.claude_app_path,
+        claude_app_scan_roots: user_config.claude_app_scan_roots,
         codex_specified_app_path: user_config.codex_specified_app_path,
         zed_app_path: user_config.zed_app_path,
         vscode_app_path: user_config.vscode_app_path,
@@ -2384,6 +2388,7 @@ pub fn save_general_config(
     antigravity_app_path: String,
     codex_app_path: String,
     claude_app_path: Option<String>,
+    claude_app_scan_roots: Option<String>,
     codex_specified_app_path: Option<String>,
     zed_app_path: Option<String>,
     vscode_app_path: String,
@@ -2457,6 +2462,9 @@ pub fn save_general_config(
     let normalized_claude_path = claude_app_path
         .map(|value| value.trim().to_string())
         .unwrap_or_else(|| current.claude_app_path.clone());
+    let normalized_claude_app_scan_roots = claude_app_scan_roots
+        .map(|value| value.trim().to_string())
+        .unwrap_or_else(|| current.claude_app_scan_roots.clone());
     let normalized_codex_specified_app_path = codex_specified_app_path
         .map(|value| value.trim().to_string())
         .unwrap_or_else(|| current.codex_specified_app_path.clone());
@@ -2618,6 +2626,7 @@ pub fn save_general_config(
         antigravity_app_path: normalized_antigravity_path,
         codex_app_path: normalized_codex_path,
         claude_app_path: normalized_claude_path,
+        claude_app_scan_roots: normalized_claude_app_scan_roots,
         codex_specified_app_path: normalized_codex_specified_app_path,
         zed_app_path: normalized_zed_path,
         vscode_app_path: normalized_vscode_path,
@@ -2848,6 +2857,20 @@ pub fn set_app_path(app: String, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn set_claude_app_scan_roots(scan_roots: String) -> Result<(), String> {
+    let current = config::get_user_config();
+    let normalized = scan_roots.trim().to_string();
+    if current.claude_app_scan_roots == normalized {
+        return Ok(());
+    }
+    let new_config = UserConfig {
+        claude_app_scan_roots: normalized,
+        ..current
+    };
+    config::save_user_config(&new_config)
+}
+
+#[tauri::command]
 pub fn set_codex_launch_on_switch(enabled: bool) -> Result<(), String> {
     let current = config::get_user_config();
     if current.codex_launch_on_switch == enabled {
@@ -2889,6 +2912,19 @@ pub fn detect_app_path(app: String, force: Option<bool>) -> Result<Option<String
         ),
         _ => Err("未知应用类型".to_string()),
     }
+}
+
+#[tauri::command]
+pub fn scan_claude_desktop_launch_targets(
+    scan_roots: Option<String>,
+) -> Result<Vec<modules::claude_instance::ClaudeDesktopLaunchCandidate>, String> {
+    let roots = scan_roots
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    Ok(modules::claude_instance::scan_claude_desktop_launch_targets(
+        roots,
+    ))
 }
 
 #[tauri::command]

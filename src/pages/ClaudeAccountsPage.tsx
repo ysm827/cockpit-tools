@@ -1965,12 +1965,30 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
     try {
       await store.switchAccount(account.id);
       setCurrentAccountId(account.id);
+      const displayName = maskAccountText(getClaudeAccountDisplayEmail(account));
       setMessage({
-        text: t('messages.switched', {
-          email: maskAccountText(getClaudeAccountDisplayEmail(account)),
-        }),
+        text: isClaudeDesktopGatewayAccount(account)
+          ? t(
+            'claude.desktopGateway.switchSuccess',
+            '已应用 Claude Desktop 供应商配置：{{name}}。桌面端右上角登录身份可能仍显示原 Claude 账号，实际请求会走当前 Gateway。',
+            { name: displayName },
+          )
+          : t('messages.switched', {
+            email: displayName,
+          }),
       });
     } catch (error) {
+      if (String(error ?? '').startsWith('APP_PATH_NOT_FOUND:claude')) {
+        window.dispatchEvent(
+          new CustomEvent('app-path-missing', {
+            detail: {
+              app: 'claude',
+              retry: { kind: 'switchAccount', accountId: account.id },
+            },
+          }),
+        );
+        return;
+      }
       setMessage({
         text: t('messages.switchFailed', {
           error: String(error),
@@ -2546,11 +2564,13 @@ export function ClaudeAccountsPage({ subPlatform = 'desktop' }: ClaudeAccountsPa
                   : t('claude.cli.quickLaunch', 'CLI 启动')
               : isApiKey
                 ? t('claude.apiKey.switchDisabled', 'API Key 账号不能写入本地登录态')
-                : isClaudeCodeOAuth
-                  ? t('claude.oauth.switchHint', '切换到本机 Claude Code')
-                : isDesktopRuntime
-                  ? t('claude.desktopOAuth.switchHint', '切换到官方 Claude')
-                  : t('common.shared.switchAccount', '切换账号')
+                : isDesktopGateway
+                  ? t('claude.desktopGateway.switchHint', '应用供应商配置并启动 Claude Desktop')
+                  : isClaudeCodeOAuth
+                    ? t('claude.oauth.switchHint', '切换到本机 Claude Code')
+                    : isDesktopRuntime
+                      ? t('claude.desktopOAuth.switchHint', '切换到官方 Claude')
+                      : t('common.shared.switchAccount', '切换账号')
           }
         >
           {(isCliSubPlatform ? cliLaunchingAccountId : switching) === account.id
