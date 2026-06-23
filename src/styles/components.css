@@ -191,6 +191,19 @@
   gap: 20px;
 }
 
+.codex-platform-package-page {
+  position: relative;
+  min-height: 100%;
+}
+
+.codex-platform-package-floating-toolbar {
+  position: absolute;
+  top: 3px;
+  right: 0;
+  z-index: 35;
+  pointer-events: auto;
+}
+
 .page-heading {
   display: flex;
   align-items: center;
@@ -472,6 +485,10 @@
   max-width: min(260px, 32vw);
 }
 
+.page-top-strip-right-slot {
+  z-index: 120;
+}
+
 .installed-version-badge {
   display: inline-flex;
   align-items: center;
@@ -539,6 +556,10 @@
 .page-tabs-row-with-leading .page-tabs {
   grid-column: 2;
   justify-self: center;
+}
+
+.platform-remote-tabs-slot:empty {
+  display: none;
 }
 
 .page-tabs-leading .platform-group-switcher-trigger {

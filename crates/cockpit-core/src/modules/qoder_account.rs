@@ -1023,7 +1023,7 @@ pub fn import_from_local() -> Result<Option<QoderAccount>, String> {
     Ok(Some(account))
 }
 
-pub(crate) fn resolve_current_account_id(accounts: &[QoderAccount]) -> Option<String> {
+pub fn resolve_current_account_id(accounts: &[QoderAccount]) -> Option<String> {
     let db_path = get_default_qoder_state_db_path()?;
     let snapshot = read_snapshot_from_state_db_path(db_path.as_path()).ok()??;
     let user_id = extract_snapshot_user_id(&snapshot);

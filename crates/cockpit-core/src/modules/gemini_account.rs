@@ -1753,7 +1753,7 @@ pub(crate) fn extract_account_model_remaining(account: &GeminiAccount) -> Vec<(S
     values
 }
 
-pub(crate) fn resolve_current_account(accounts: &[GeminiAccount]) -> Option<GeminiAccount> {
+pub fn resolve_current_account(accounts: &[GeminiAccount]) -> Option<GeminiAccount> {
     let active_email = get_local_active_email();
 
     if let Some(active_email) = active_email {

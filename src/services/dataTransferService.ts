@@ -5,6 +5,7 @@ import {
   AccountTransferImportProgress,
   AccountTransferImportResult,
   buildAccountTransferBundle,
+  canUseAccountTransferPlatform,
   importAllAccountsFromTransferJson,
 } from './accountTransferService';
 import { ALL_PLATFORM_IDS, PlatformId } from '../types/platform';
@@ -31,7 +32,12 @@ import {
   saveCodexWakeupState,
   updateCodexWakeupRuntimeConfig,
 } from './codexWakeupService';
-import { CodexWakeupModelPreset, CodexWakeupTask } from '../types/codexWakeup';
+import {
+  CodexCliStatus,
+  CodexWakeupModelPreset,
+  CodexWakeupState,
+  CodexWakeupTask,
+} from '../types/codexWakeup';
 import {
   CURRENT_ACCOUNT_REFRESH_STORAGE_KEY,
   CurrentAccountRefreshMinutesMap,
@@ -69,6 +75,7 @@ const WAKEUP_TASKS_KEY = 'agtools.wakeup.tasks';
 const INSTANCE_PLATFORMS = [
   'antigravity',
   'codex',
+  'claude_manager',
   'github-copilot',
   'windsurf',
   'kiro',
@@ -82,6 +89,30 @@ const INSTANCE_PLATFORMS = [
 ] as const;
 
 type InstancePlatform = (typeof INSTANCE_PLATFORMS)[number];
+
+async function listAvailableInstancePlatforms(): Promise<InstancePlatform[]> {
+  const entries = await Promise.all(
+    INSTANCE_PLATFORMS.map(async (platform) => {
+      if (platform === 'antigravity') return platform;
+      return (await canUseAccountTransferPlatform(platform)) ? platform : null;
+    }),
+  );
+  return entries.filter((platform): platform is InstancePlatform => platform != null);
+}
+
+const EMPTY_CODEX_WAKEUP_STATE: CodexWakeupState = {
+  enabled: false,
+  tasks: [],
+  model_presets: [],
+  model_preset_migrations: [],
+};
+
+const EMPTY_CODEX_WAKEUP_CLI_STATUS: CodexCliStatus = {
+  available: false,
+  required_runtime_paths: [],
+  checked_at: 0,
+  install_hints: [],
+};
 type TransferAccountRecord = Record<string, unknown> & { id: string };
 type AccountLoader = () => Promise<TransferAccountRecord[]>;
 type LegacyFormat = 'data_bundle' | 'account_bundle' | 'legacy_account_json';
@@ -431,6 +462,9 @@ function buildAccountRegistry(
 async function loadAccountRegistry(): Promise<AccountRegistry> {
   const entries = await Promise.all(
     ALL_PLATFORM_IDS.map(async (platform) => {
+      if (!(await canUseAccountTransferPlatform(platform))) {
+        return [platform, [] as TransferAccountRecord[]] as const;
+      }
       const accounts = await ACCOUNT_LOADERS[platform]();
       return [platform, accounts] as const;
     }),
@@ -980,6 +1014,8 @@ function importCodexWakeupState(
 }
 
 async function exportConfigBundle(registry: AccountRegistry): Promise<DataTransferConfigBundle> {
+  const codexRuntimeReady = await canUseAccountTransferPlatform('codex');
+  const instancePlatforms = await listAvailableInstancePlatforms();
   const [
     rawUserConfig,
     groupSettings,
@@ -993,12 +1029,12 @@ async function exportConfigBundle(registry: AccountRegistry): Promise<DataTransf
     invoke<RawUserConfig>('data_transfer_get_user_config'),
     getGroupSettings(),
     getAccountGroups(),
-    getCodexAccountGroups(),
-    listCodexModelProviders(),
-    getCodexWakeupState(),
-    getCodexWakeupCliStatus(),
+    codexRuntimeReady ? getCodexAccountGroups() : Promise.resolve([]),
+    codexRuntimeReady ? listCodexModelProviders() : Promise.resolve([]),
+    codexRuntimeReady ? getCodexWakeupState() : Promise.resolve(EMPTY_CODEX_WAKEUP_STATE),
+    codexRuntimeReady ? getCodexWakeupCliStatus() : Promise.resolve(EMPTY_CODEX_WAKEUP_CLI_STATUS),
     Promise.all(
-      INSTANCE_PLATFORMS.map(async (platform) => {
+      instancePlatforms.map(async (platform) => {
         const store = await invoke<RawInstanceStore>('data_transfer_get_instance_store', { platform });
         return [platform, exportInstanceStore(platform, store, registry)] as const;
       }),
@@ -1045,6 +1081,8 @@ async function exportConfigBundle(registry: AccountRegistry): Promise<DataTransf
 }
 
 async function importConfigBundle(bundle: DataTransferConfigBundle): Promise<DataTransferConfigImportResult> {
+  const codexRuntimeReady = await canUseAccountTransferPlatform('codex');
+  const availableInstancePlatforms = new Set(await listAvailableInstancePlatforms());
   const registry = await loadAccountRegistry();
   let unresolvedAccountRefs = 0;
   let disabledTaskCount = 0;
@@ -1069,19 +1107,22 @@ async function importConfigBundle(bundle: DataTransferConfigBundle): Promise<Dat
   });
   invalidateAccountGroupCache();
 
-  const codexAccountGroupsImport = importCodexAccountGroups(bundle.codex_account_groups, registry);
-  unresolvedAccountRefs += codexAccountGroupsImport.unresolved;
-  await invoke('save_codex_account_groups', {
-    data: JSON.stringify(codexAccountGroupsImport.groups, null, 2),
-  });
-  invalidateCodexGroupCache();
+  if (codexRuntimeReady) {
+    const codexAccountGroupsImport = importCodexAccountGroups(bundle.codex_account_groups, registry);
+    unresolvedAccountRefs += codexAccountGroupsImport.unresolved;
+    await invoke('save_codex_account_groups', {
+      data: JSON.stringify(codexAccountGroupsImport.groups, null, 2),
+    });
+    invalidateCodexGroupCache();
 
-  await invoke('save_codex_model_providers', {
-    data: JSON.stringify(bundle.codex_model_providers, null, 2),
-  });
-  invalidateCodexModelProviderCache();
+    await invoke('save_codex_model_providers', {
+      data: JSON.stringify(bundle.codex_model_providers, null, 2),
+    });
+    invalidateCodexModelProviderCache();
+  }
 
   for (const platform of INSTANCE_PLATFORMS) {
+    if (!availableInstancePlatforms.has(platform)) continue;
     const store = bundle.instance_stores[platform];
     if (!store) continue;
     const imported = importInstanceStore(platform, store, registry);
@@ -1109,18 +1150,20 @@ async function importConfigBundle(bundle: DataTransferConfigBundle): Promise<Dat
     runStartupTasks: false,
   });
 
-  const codexWakeupImport = importCodexWakeupState(bundle.codex_wakeup, registry);
-  unresolvedAccountRefs += codexWakeupImport.unresolved;
-  disabledTaskCount += codexWakeupImport.disabledTasks;
-  await saveCodexWakeupState(
-    codexWakeupImport.state.enabled,
-    codexWakeupImport.state.tasks,
-    codexWakeupImport.state.model_presets,
-  );
-  await updateCodexWakeupRuntimeConfig(
-    normalizeString(codexWakeupImport.state.runtime.codex_cli_path) ?? undefined,
-    normalizeString(codexWakeupImport.state.runtime.node_path) ?? undefined,
-  );
+  if (codexRuntimeReady) {
+    const codexWakeupImport = importCodexWakeupState(bundle.codex_wakeup, registry);
+    unresolvedAccountRefs += codexWakeupImport.unresolved;
+    disabledTaskCount += codexWakeupImport.disabledTasks;
+    await saveCodexWakeupState(
+      codexWakeupImport.state.enabled,
+      codexWakeupImport.state.tasks,
+      codexWakeupImport.state.model_presets,
+    );
+    await updateCodexWakeupRuntimeConfig(
+      normalizeString(codexWakeupImport.state.runtime.codex_cli_path) ?? undefined,
+      normalizeString(codexWakeupImport.state.runtime.node_path) ?? undefined,
+    );
+  }
 
   const legacyRecordsKey = ['mfa', 'vault', 'records'].join('_');
   const legacyRecords = (bundle as Record<string, any>)[legacyRecordsKey];
@@ -1271,6 +1314,9 @@ async function importLegacyAccountJson(
   platform: PlatformId,
   jsonContent: string,
 ): Promise<AccountTransferImportResult> {
+  if (!(await canUseAccountTransferPlatform(platform))) {
+    throw new Error(`platform_package_not_ready:${platform}`);
+  }
   const importer = LEGACY_IMPORTERS[platform];
   if (!importer) {
     throw new Error('unsupported_legacy_account_json');

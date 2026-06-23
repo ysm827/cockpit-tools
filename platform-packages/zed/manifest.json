@@ -1,7 +1,7 @@
 {
   "id": "zed",
   "platformId": "zed",
-  "version": "0.26.6",
+  "version": "0.26.7",
   "apiVersion": 1,
   "minCoreVersion": "0.26.5",
   "displayName": "Zed",
@@ -42,12 +42,39 @@
       "runtime.focusDefault"
     ]
   },
+  "ui": {
+    "protocol": "react-remote-esm-v1",
+    "entry": "ui/remoteEntry.js",
+    "style": "ui/style.css",
+    "exports": [
+      "mount",
+      "unmount"
+    ]
+  },
   "capabilities": [
     "accounts",
     "oauth",
     "switch",
     "quota",
     "runtime"
+  ],
+  "changelog": [
+    {
+      "version": "0.26.7",
+      "date": "2026-06-22",
+      "notes": [
+        "Zed account overview, tabs, runtime controls, and page interactions are now supplied by the Zed platform package UI runtime.",
+        "Core Shell keeps the platform package lifecycle controls while Zed page UI changes can ship through Zed package updates."
+      ]
+    },
+    {
+      "version": "0.26.6",
+      "date": "2026-06-22",
+      "notes": [
+        "Zed platform package uses a sidecar adapter boundary for accounts, OAuth, switching, quota, and runtime commands.",
+        "Platform package lifecycle supports independent install, update, uninstall, size display, and runtime readiness checks."
+      ]
+    }
   ],
   "contributions": {
     "platforms": [

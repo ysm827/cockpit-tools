@@ -62,6 +62,7 @@ import { useWorkbuddyAccountStore } from '../stores/useWorkbuddyAccountStore';
 import { useQoderAccountStore } from '../stores/useQoderAccountStore';
 import { useTraeAccountStore } from '../stores/useTraeAccountStore';
 import { useZedAccountStore } from '../stores/useZedAccountStore';
+import { usePlatformPackageStore } from '../stores/usePlatformPackageStore';
 import { getGitHubCopilotAccountDisplayEmail } from '../types/githubCopilot';
 import { getWindsurfAccountDisplayEmail } from '../types/windsurf';
 import { getKiroAccountDisplayEmail } from '../types/kiro';
@@ -579,6 +580,7 @@ export function SettingsPage() {
   const [antigravityAccountGroups, setAntigravityAccountGroups] = useState<AccountGroup[]>([]);
   const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>([]);
   const [codexGroups, setCodexGroups] = useState<CodexAccountGroup[]>([]);
+  const codexRuntimeReady = usePlatformPackageStore((state) => state.canOpenPlatform('codex'));
 
   const antigravityScopeTypeOptions = useMemo(
     () => buildAccountTierFilterOptions(t, buildAccountTierCounts(antigravityAccounts, {})),
@@ -606,13 +608,15 @@ export function SettingsPage() {
   );
   const codexScopeAccounts = useMemo<AutoSwitchScopeAccount[]>(
     () =>
-      codexAccounts.map((account) => ({
-        id: account.id,
-        label: account.email,
-        searchableText: account.email,
-        tags: account.tags || [],
-      })),
-    [codexAccounts],
+      codexRuntimeReady
+        ? codexAccounts.map((account) => ({
+            id: account.id,
+            label: account.email,
+            searchableText: account.email,
+            tags: account.tags || [],
+          }))
+        : [],
+    [codexAccounts, codexRuntimeReady],
   );
 
   useEffect(() => {
@@ -623,8 +627,8 @@ export function SettingsPage() {
           await Promise.all([
             accountService.listAccounts(),
             getAccountGroups(),
-            codexService.listCodexAccounts(),
-            getCodexAccountGroups(),
+            codexRuntimeReady ? codexService.listCodexAccounts() : Promise.resolve([]),
+            codexRuntimeReady ? getCodexAccountGroups() : Promise.resolve([]),
           ]);
         if (!mounted) return;
         setAntigravityAccounts(nextAntigravityAccounts || []);
@@ -648,7 +652,7 @@ export function SettingsPage() {
     return () => {
       mounted = false;
     };
-  }, [activeTab]);
+  }, [activeTab, codexRuntimeReady]);
 
   useEffect(() => {
     getVersion().then(ver => setAppVersion(`v${ver}`));
@@ -1858,8 +1862,10 @@ export function SettingsPage() {
       case 'antigravity':
         return antigravityAccounts.map((a) => ({ id: a.id, email: a.email }));
       case 'codex':
+        if (!codexRuntimeReady) return [];
         return codexAccounts.map((a) => ({ id: a.id, email: a.email }));
       case 'claude':
+        if (!usePlatformPackageStore.getState().canOpenPlatform('claude_manager')) return [];
         return getProviderAccounts(useClaudeAccountStore, getClaudeAccountDisplayEmail);
       case 'ghcp':
         return getProviderAccounts(useGitHubCopilotAccountStore, getGitHubCopilotAccountDisplayEmail);
@@ -1872,10 +1878,13 @@ export function SettingsPage() {
       case 'gemini':
         return getProviderAccounts(useGeminiAccountStore, getGeminiAccountDisplayEmail);
       case 'codebuddy':
+        if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy')) return [];
         return getProviderAccounts(useCodebuddyAccountStore, getCodebuddyAccountDisplayEmail);
       case 'codebuddy_cn':
+        if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy_cn')) return [];
         return getProviderAccounts(useCodebuddyCnAccountStore, getCodebuddyAccountDisplayEmail);
       case 'workbuddy':
+        if (!usePlatformPackageStore.getState().canOpenPlatform('workbuddy')) return [];
         return getProviderAccounts(useWorkbuddyAccountStore, getWorkbuddyAccountDisplayEmail);
       case 'qoder':
         return getProviderAccounts(useQoderAccountStore, getQoderAccountDisplayEmail);

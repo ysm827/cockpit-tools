@@ -1277,7 +1277,7 @@ pub fn import_payload_from_local() -> Result<Option<CodebuddyOAuthCompletePayloa
     Ok(Some(payload))
 }
 
-pub(crate) fn resolve_current_account_id(accounts: &[CodebuddyAccount]) -> Option<String> {
+pub fn resolve_current_account_id(accounts: &[CodebuddyAccount]) -> Option<String> {
     let payload = import_payload_from_local().ok()??;
     let incoming_uid = normalize_identity(payload.uid.as_deref());
     let incoming_email = normalize_email_identity(Some(payload.email.as_str()));

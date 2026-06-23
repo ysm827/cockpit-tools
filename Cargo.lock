@@ -725,6 +725,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cockpit-claude-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "cockpit-cli"
 version = "0.1.0"
 dependencies = [
@@ -737,6 +749,47 @@ dependencies = [
  "serde_json",
  "tabled",
  "tokio",
+]
+
+[[package]]
+name = "cockpit-codebuddy-adapter"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "cockpit-core",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-codebuddy-cn-adapter"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "cockpit-core",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-codex-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -789,11 +842,72 @@ dependencies = [
  "urlencoding",
  "uuid",
  "windows 0.58.0",
+ "zip",
+]
+
+[[package]]
+name = "cockpit-cursor-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-gemini-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-github-copilot-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-kiro-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-qoder-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
 name = "cockpit-tools"
-version = "0.26.5"
+version = "0.26.6"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -858,6 +972,43 @@ dependencies = [
  "uuid",
  "windows 0.58.0",
  "zip",
+]
+
+[[package]]
+name = "cockpit-trae-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-windsurf-adapter"
+version = "0.1.0"
+dependencies = [
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "cockpit-workbuddy-adapter"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "cockpit-core",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

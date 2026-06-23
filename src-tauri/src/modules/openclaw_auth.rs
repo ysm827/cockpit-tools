@@ -1,5 +1,6 @@
 use crate::models::codex::CodexAccount;
-use crate::modules::{codex_account, codex_oauth, logger};
+use crate::modules::logger;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde_json::{json, Value};
 #[cfg(target_os = "macos")]
 use sha2::{Digest, Sha256};
@@ -141,8 +142,19 @@ fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
 }
 
 fn decode_token_exp_ms(access_token: &str) -> Option<i64> {
-    let payload = codex_account::decode_jwt_payload(access_token).ok()?;
-    payload.exp.map(|exp| exp * 1000)
+    let payload_base64 = access_token.split('.').nth(1)?;
+    let payload_bytes = URL_SAFE_NO_PAD.decode(payload_base64).ok()?;
+    let payload: Value = serde_json::from_slice(&payload_bytes).ok()?;
+    payload
+        .get("exp")
+        .and_then(Value::as_i64)
+        .map(|exp| exp * 1000)
+}
+
+fn codex_access_token_expired(access_token: &str) -> bool {
+    decode_token_exp_ms(access_token)
+        .map(|expires_at| expires_at <= chrono::Utc::now().timestamp_millis())
+        .unwrap_or(true)
 }
 
 fn build_openclaw_codex_payload(account: &CodexAccount) -> Result<Value, String> {
@@ -859,7 +871,7 @@ fn try_restart_openclaw_gateway() -> bool {
 
 /// 使用 Codex 账号的 token 覆盖 OpenClaw auth-profiles.json 中的 openai-codex:default 记录
 pub fn replace_openai_codex_entry_from_codex(account: &CodexAccount) -> Result<(), String> {
-    if codex_oauth::is_token_expired(&account.tokens.access_token) {
+    if codex_access_token_expired(&account.tokens.access_token) {
         return Err("Codex access_token 已过期，无法同步到 OpenClaw".to_string());
     }
 

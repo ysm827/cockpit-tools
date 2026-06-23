@@ -20,7 +20,34 @@ const MANIFEST_FILE: &str = "manifest.json";
 const CURRENT_DIR: &str = "current";
 const DOWNLOADS_DIR: &str = "downloads";
 const ZED_PLATFORM_ID: &str = "zed";
-const ZED_PACKAGE_API_VERSION: u32 = 1;
+const CLAUDE_MANAGER_PLATFORM_ID: &str = "claude_manager";
+const KIRO_PLATFORM_ID: &str = "kiro";
+const GITHUB_COPILOT_PLATFORM_ID: &str = "github-copilot";
+const WINDSURF_PLATFORM_ID: &str = "windsurf";
+const CURSOR_PLATFORM_ID: &str = "cursor";
+const GEMINI_PLATFORM_ID: &str = "gemini";
+const TRAE_PLATFORM_ID: &str = "trae";
+const QODER_PLATFORM_ID: &str = "qoder";
+const CODEBUDDY_PLATFORM_ID: &str = "codebuddy";
+const CODEBUDDY_CN_PLATFORM_ID: &str = "codebuddy_cn";
+const WORKBUDDY_PLATFORM_ID: &str = "workbuddy";
+const CODEX_PLATFORM_ID: &str = "codex";
+const PLATFORM_PACKAGE_API_VERSION: u32 = 1;
+const SUPPORTED_PLATFORM_IDS: &[&str] = &[
+    CLAUDE_MANAGER_PLATFORM_ID,
+    ZED_PLATFORM_ID,
+    KIRO_PLATFORM_ID,
+    GITHUB_COPILOT_PLATFORM_ID,
+    WINDSURF_PLATFORM_ID,
+    CURSOR_PLATFORM_ID,
+    GEMINI_PLATFORM_ID,
+    TRAE_PLATFORM_ID,
+    QODER_PLATFORM_ID,
+    CODEBUDDY_PLATFORM_ID,
+    CODEBUDDY_CN_PLATFORM_ID,
+    WORKBUDDY_PLATFORM_ID,
+    CODEX_PLATFORM_ID,
+];
 const PLATFORM_PACKAGE_INDEX_URL: &str =
     "https://raw.githubusercontent.com/jlcodes99/cockpit-tools/main/platform-packages/index.json";
 const PLATFORM_PACKAGE_INDEX_CACHE_TTL_MS: i64 = 30 * 60 * 1000;
@@ -64,6 +91,29 @@ pub struct PlatformPackageAdapter {
     pub methods: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformPackageUi {
+    pub protocol: String,
+    pub entry: String,
+    #[serde(default)]
+    pub style: Option<String>,
+    #[serde(default)]
+    pub exports: Vec<String>,
+    #[serde(default)]
+    pub sandbox: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformPackageChangelogEntry {
+    pub version: String,
+    #[serde(default)]
+    pub date: Option<String>,
+    #[serde(default)]
+    pub notes: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PlatformPackageManifest {
@@ -79,9 +129,13 @@ struct PlatformPackageManifest {
     #[serde(default)]
     adapter: Option<PlatformPackageAdapter>,
     #[serde(default)]
+    ui: Option<PlatformPackageUi>,
+    #[serde(default)]
     capabilities: Vec<String>,
     #[serde(default)]
     contributions: PlatformPackageContributions,
+    #[serde(default)]
+    changelog: Vec<PlatformPackageChangelogEntry>,
     #[serde(default)]
     download_size_bytes: Option<u64>,
     #[serde(default)]
@@ -98,6 +152,8 @@ struct PlatformPackageRuntimeEntry {
     api_version: u32,
     #[serde(default)]
     adapter: Option<PlatformPackageAdapter>,
+    #[serde(default)]
+    ui: Option<PlatformPackageUi>,
     #[serde(default)]
     capabilities: Vec<String>,
     #[serde(default)]
@@ -120,8 +176,11 @@ pub struct PlatformPackageState {
     pub error_message: Option<String>,
     pub entry: Option<String>,
     pub adapter: Option<PlatformPackageAdapter>,
+    pub ui: Option<PlatformPackageUi>,
     pub capabilities: Vec<String>,
     pub contributions: PlatformPackageContributions,
+    #[serde(default)]
+    pub changelog: Vec<PlatformPackageChangelogEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,6 +190,29 @@ struct PlatformPackageRemoteIndex {
     version: String,
     #[serde(default)]
     packages: Vec<PlatformPackageRemotePackage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlatformPackageRemoteArtifact {
+    os: String,
+    arch: String,
+    download_url: String,
+    #[serde(default)]
+    download_size_bytes: Option<u64>,
+    sha256: String,
+    #[serde(default)]
+    signature: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct SelectedPlatformPackageArtifact {
+    os: String,
+    arch: String,
+    download_url: String,
+    download_size_bytes: Option<u64>,
+    sha256: String,
+    signature: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,16 +229,38 @@ struct PlatformPackageRemotePackage {
     install_kind: String,
     #[serde(default)]
     adapter: Option<PlatformPackageAdapter>,
-    download_url: String,
     #[serde(default)]
+    ui: Option<PlatformPackageUi>,
     capabilities: Vec<String>,
     #[serde(default)]
     contributions: PlatformPackageContributions,
     #[serde(default)]
+    changelog: Vec<PlatformPackageChangelogEntry>,
+    #[serde(default)]
+    artifacts: Vec<PlatformPackageRemoteArtifact>,
+    #[serde(default)]
+    download_url: Option<String>,
+    #[serde(default)]
     download_size_bytes: Option<u64>,
-    sha256: String,
+    #[serde(default)]
+    sha256: Option<String>,
     #[serde(default)]
     signature: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformPackageUiEntry {
+    pub platform_id: String,
+    pub version: String,
+    pub protocol: String,
+    pub entry: String,
+    #[serde(default)]
+    pub exports: Vec<String>,
+    pub sandbox: Option<String>,
+    pub source: String,
+    #[serde(default)]
+    pub style: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -246,9 +350,10 @@ fn package_downloads_dir(platform_id: &str) -> Result<PathBuf, String> {
 }
 
 fn ensure_supported_platform(platform_id: &str) -> Result<(), String> {
-    match platform_id {
-        ZED_PLATFORM_ID => Ok(()),
-        _ => Err(format!("平台暂不支持热更新包: {}", platform_id)),
+    if SUPPORTED_PLATFORM_IDS.contains(&platform_id) {
+        Ok(())
+    } else {
+        Err(format!("平台暂不支持热更新包: {}", platform_id))
     }
 }
 
@@ -494,10 +599,10 @@ fn validate_manifest_metadata(
     if manifest.install_kind != "coreNativeBoundary" && manifest.install_kind != "sidecarAdapter" {
         return Err(format!("平台包安装形态非法: {}", manifest.install_kind));
     }
-    if manifest.api_version != ZED_PACKAGE_API_VERSION {
+    if manifest.api_version != PLATFORM_PACKAGE_API_VERSION {
         return Err(format!(
             "平台包协议版本不兼容: expected={}, actual={}",
-            ZED_PACKAGE_API_VERSION, manifest.api_version
+            PLATFORM_PACKAGE_API_VERSION, manifest.api_version
         ));
     }
     if manifest.version.trim().is_empty() {
@@ -566,6 +671,73 @@ fn validate_adapter(
     Ok(())
 }
 
+fn validate_ui(package_root: &Path, manifest: &PlatformPackageManifest) -> Result<(), String> {
+    let Some(ui) = manifest.ui.as_ref() else {
+        return Ok(());
+    };
+
+    let protocol = ui.protocol.trim();
+    let entry_path = safe_relative_path(&ui.entry, "平台包 UI entry")?;
+    let ui_path = package_root.join(entry_path);
+    if !ui_path.is_file() {
+        return Err(format!("平台包 UI entry 不存在: {}", ui.entry));
+    }
+    let extension = ui_path
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default();
+
+    match protocol {
+        "react-remote-esm-v1" => {
+            if !extension.eq_ignore_ascii_case("js") && !extension.eq_ignore_ascii_case("mjs") {
+                return Err(format!(
+                    "平台包 remote UI entry 必须是 JS/MJS 文件: {}",
+                    ui.entry
+                ));
+            }
+            if !ui.exports.iter().any(|item| item == "mount") {
+                return Err("平台包 remote UI 必须声明 mount 导出".to_string());
+            }
+            if let Some(style) = ui.style.as_deref() {
+                let style_path = safe_relative_path(style, "平台包 UI style")?;
+                let style_path = package_root.join(style_path);
+                if !style_path.is_file() {
+                    return Err(format!("平台包 UI style 不存在: {}", style));
+                }
+                if style_path
+                    .extension()
+                    .and_then(|value| value.to_str())
+                    .map(|value| value.eq_ignore_ascii_case("css"))
+                    != Some(true)
+                {
+                    return Err(format!("平台包 UI style 必须是 CSS 文件: {}", style));
+                }
+            }
+        }
+        "iframe-html-v1" => {
+            if !extension.eq_ignore_ascii_case("html") {
+                return Err(format!("平台包 UI entry 必须是 HTML 文件: {}", ui.entry));
+            }
+            if let Some(sandbox) = ui.sandbox.as_deref() {
+                let allowed = [
+                    "allow-scripts",
+                    "allow-forms",
+                    "allow-popups",
+                    "allow-downloads",
+                    "allow-modals",
+                ];
+                for token in sandbox.split_whitespace() {
+                    if !allowed.contains(&token) {
+                        return Err(format!("平台包 UI sandbox 权限不支持: {}", token));
+                    }
+                }
+            }
+        }
+        _ => return Err(format!("平台包 UI 协议不支持: {}", ui.protocol)),
+    }
+    Ok(())
+}
+
 fn validate_manifest(
     platform_id: &str,
     package_root: &Path,
@@ -594,10 +766,14 @@ fn validate_manifest(
     if runtime.adapter != manifest.adapter {
         return Err("平台包 manifest 与 runtime adapter 声明不一致".to_string());
     }
+    if runtime.ui != manifest.ui {
+        return Err("平台包 manifest 与 runtime UI 声明不一致".to_string());
+    }
     if runtime.contributions != manifest.contributions {
         return Err("平台包 manifest 与 runtime contribution 不一致".to_string());
     }
     validate_adapter(platform_id, package_root, &manifest)?;
+    validate_ui(package_root, &manifest)?;
 
     Ok(manifest)
 }
@@ -622,12 +798,6 @@ pub fn installed_platform_adapter(platform_id: &str) -> Result<InstalledPlatform
     let current_dir = package_current_dir(platform_id)?;
     let manifest = read_installed_manifest(platform_id)?
         .ok_or_else(|| format!("平台包未安装: {}", platform_id))?;
-    if manifest.install_kind != "sidecarAdapter" {
-        return Err(format!(
-            "平台包不是 sidecarAdapter 形态，不能启动 adapter: {}",
-            platform_id
-        ));
-    }
     let adapter = manifest
         .adapter
         .clone()
@@ -835,21 +1005,110 @@ fn load_remote_index(force_refresh: bool) -> Result<Option<PlatformPackageRemote
     }
 }
 
+fn current_artifact_os() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        "macos"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "windows"
+    }
+    #[cfg(target_os = "linux")]
+    {
+        "linux"
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    {
+        "unknown"
+    }
+}
+
+fn current_artifact_arch() -> &'static str {
+    #[cfg(target_arch = "aarch64")]
+    {
+        "aarch64"
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        "x86_64"
+    }
+    #[cfg(target_arch = "arm")]
+    {
+        "arm"
+    }
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64", target_arch = "arm")))]
+    {
+        "unknown"
+    }
+}
+
+fn validate_sha256_hex(platform_id: &str, sha256: &str) -> Result<(), String> {
+    if sha256.trim().len() != 64 || !sha256.trim().chars().all(|ch| ch.is_ascii_hexdigit()) {
+        return Err(format!("平台包远端索引 sha256 非法: {}", platform_id));
+    }
+    Ok(())
+}
+
+fn selected_remote_artifact(
+    platform_id: &str,
+    package: &PlatformPackageRemotePackage,
+) -> Result<SelectedPlatformPackageArtifact, String> {
+    let target_os = current_artifact_os();
+    let target_arch = current_artifact_arch();
+
+    if !package.artifacts.is_empty() {
+        let artifact = package
+            .artifacts
+            .iter()
+            .find(|item| item.os == target_os && item.arch == target_arch)
+            .ok_or_else(|| {
+                format!(
+                    "当前平台没有可用平台包 artifact: platform={}, target={}/{}",
+                    platform_id, target_os, target_arch
+                )
+            })?;
+        validate_remote_download_url(&artifact.download_url)?;
+        validate_sha256_hex(platform_id, &artifact.sha256)?;
+        return Ok(SelectedPlatformPackageArtifact {
+            os: artifact.os.clone(),
+            arch: artifact.arch.clone(),
+            download_url: artifact.download_url.clone(),
+            download_size_bytes: artifact.download_size_bytes.or(package.download_size_bytes),
+            sha256: artifact.sha256.clone(),
+            signature: artifact
+                .signature
+                .clone()
+                .or_else(|| package.signature.clone()),
+        });
+    }
+
+    let download_url = package
+        .download_url
+        .clone()
+        .ok_or_else(|| format!("平台包远端索引缺少 downloadUrl: {}", platform_id))?;
+    let sha256 = package
+        .sha256
+        .clone()
+        .ok_or_else(|| format!("平台包远端索引缺少 sha256: {}", platform_id))?;
+    validate_remote_download_url(&download_url)?;
+    validate_sha256_hex(platform_id, &sha256)?;
+    Ok(SelectedPlatformPackageArtifact {
+        os: target_os.to_string(),
+        arch: target_arch.to_string(),
+        download_url,
+        download_size_bytes: package.download_size_bytes,
+        sha256,
+        signature: package.signature.clone(),
+    })
+}
+
 fn manifest_from_remote_package(
     platform_id: &str,
     package: &PlatformPackageRemotePackage,
 ) -> Result<PlatformPackageManifest, String> {
     ensure_supported_platform(platform_id)?;
-    validate_remote_download_url(&package.download_url)?;
-    if package.sha256.trim().len() != 64
-        || !package
-            .sha256
-            .trim()
-            .chars()
-            .all(|ch| ch.is_ascii_hexdigit())
-    {
-        return Err(format!("平台包远端索引 sha256 非法: {}", platform_id));
-    }
+    let artifact = selected_remote_artifact(platform_id, package)?;
 
     let manifest = PlatformPackageManifest {
         id: package.id.clone(),
@@ -862,11 +1121,13 @@ fn manifest_from_remote_package(
         package_mode: package.package_mode.clone(),
         install_kind: package.install_kind.clone(),
         adapter: package.adapter.clone(),
+        ui: package.ui.clone(),
         capabilities: package.capabilities.clone(),
         contributions: package.contributions.clone(),
-        download_size_bytes: package.download_size_bytes,
-        sha256: Some(package.sha256.clone()),
-        signature: package.signature.clone(),
+        changelog: package.changelog.clone(),
+        download_size_bytes: artifact.download_size_bytes,
+        sha256: Some(artifact.sha256),
+        signature: artifact.signature,
     };
     validate_manifest_metadata(platform_id, &manifest)?;
     Ok(manifest)
@@ -1039,10 +1300,13 @@ fn download_remote_package_zip(
     platform_id: &str,
     package: &PlatformPackageRemotePackage,
 ) -> Result<PathBuf, String> {
-    validate_remote_download_url(&package.download_url)?;
+    let artifact = selected_remote_artifact(platform_id, package)?;
     let downloads_dir = package_downloads_dir(platform_id)?;
-    let zip_path = downloads_dir.join(format!("{}-{}.zip", platform_id, package.version));
-    let expected_sha256 = package.sha256.trim().to_ascii_lowercase();
+    let zip_path = downloads_dir.join(format!(
+        "{}-{}-{}-{}.zip",
+        platform_id, package.version, artifact.os, artifact.arch
+    ));
+    let expected_sha256 = artifact.sha256.trim().to_ascii_lowercase();
 
     if zip_path.exists() {
         match sha256_file_hex(&zip_path) {
@@ -1073,7 +1337,7 @@ fn download_remote_package_zip(
 
     logger::log_info(&format!(
         "[PlatformPackage] 下载远端平台包: platform={}, url={}",
-        platform_id, package.download_url
+        platform_id, artifact.download_url
     ));
     let client = reqwest::blocking::Client::builder()
         .user_agent("Cockpit-Tools")
@@ -1081,14 +1345,14 @@ fn download_remote_package_zip(
         .build()
         .map_err(|err| format!("创建平台包下载 HTTP 客户端失败: {}", err))?;
     let mut response = client
-        .get(&package.download_url)
+        .get(&artifact.download_url)
         .send()
         .map_err(|err| format!("下载平台包失败: {}", err))?;
     if !response.status().is_success() {
         return Err(format!(
             "下载平台包失败: HTTP {} ({})",
             response.status(),
-            package.download_url
+            artifact.download_url
         ));
     }
 
@@ -1123,7 +1387,7 @@ fn download_remote_package_zip(
         .map_err(|err| format!("同步平台包下载临时文件失败: {}", err))?;
     drop(temp_file);
 
-    if let Some(expected_size) = package.download_size_bytes {
+    if let Some(expected_size) = artifact.download_size_bytes {
         if expected_size > 0 && expected_size != downloaded {
             let _ = remove_path_if_exists(&temp_path);
             return Err(format!(
@@ -1291,12 +1555,21 @@ fn build_state(
     } else {
         None
     };
+    let runtime_contract_error = installed_manifest
+        .as_ref()
+        .zip(source_manifest.as_ref())
+        .filter(|(installed, source)| same_version_runtime_contract_mismatch(installed, source))
+        .map(|_| {
+            "已安装平台包与当前运行组件声明不一致，请修复或重新安装平台包".to_string()
+        });
 
     let mut runtime_ready = installed
         && validation_error.is_none()
+        && runtime_contract_error.is_none()
         && record.map(|item| item.runtime_ready).unwrap_or(false);
-    let mut error_message =
-        validation_error.or_else(|| record.and_then(|item| item.error_message.clone()));
+    let mut error_message = validation_error
+        .or(runtime_contract_error)
+        .or_else(|| record.and_then(|item| item.error_message.clone()));
     if !installed {
         runtime_ready = false;
         if record.map(|item| item.installed).unwrap_or(false) {
@@ -1307,6 +1580,16 @@ fn build_state(
     }
 
     let manifest_for_meta = installed_manifest.as_ref().or(source_manifest.as_ref());
+    let changelog = source_manifest
+        .as_ref()
+        .filter(|manifest| !manifest.changelog.is_empty())
+        .or_else(|| {
+            installed_manifest
+                .as_ref()
+                .filter(|manifest| !manifest.changelog.is_empty())
+        })
+        .map(|manifest| manifest.changelog.clone())
+        .unwrap_or_default();
     let has_update = installed
         && runtime_ready
         && installed_version.is_some()
@@ -1346,12 +1629,14 @@ fn build_state(
         error_message,
         entry: manifest_for_meta.map(|manifest| manifest.entry.clone()),
         adapter: manifest_for_meta.and_then(|manifest| manifest.adapter.clone()),
+        ui: manifest_for_meta.and_then(|manifest| manifest.ui.clone()),
         capabilities: manifest_for_meta
             .map(|manifest| manifest.capabilities.clone())
             .unwrap_or_default(),
         contributions: manifest_for_meta
             .map(|manifest| manifest.contributions.clone())
             .unwrap_or_default(),
+        changelog,
     })
 }
 
@@ -1360,6 +1645,25 @@ fn resolve_source_size_from_current_process(platform_id: &str) -> Option<u64> {
     let repo_root = manifest_dir.parent()?;
     let source_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(platform_id);
     source_dir.exists().then(|| dir_size(&source_dir))
+}
+
+fn runtime_contract_mismatch(
+    installed: &PlatformPackageManifest,
+    source: &PlatformPackageManifest,
+) -> bool {
+    installed.api_version != source.api_version
+        || installed.install_kind != source.install_kind
+        || installed.adapter != source.adapter
+        || installed.ui != source.ui
+        || installed.capabilities != source.capabilities
+        || installed.contributions.native_boundaries != source.contributions.native_boundaries
+}
+
+fn same_version_runtime_contract_mismatch(
+    installed: &PlatformPackageManifest,
+    source: &PlatformPackageManifest,
+) -> bool {
+    installed.version == source.version && runtime_contract_mismatch(installed, source)
 }
 
 fn read_installed_manifest_and_update_state(
@@ -1410,18 +1714,85 @@ fn read_installed_manifest_and_update_state(
 
 pub fn list_platform_packages(app: &AppHandle) -> Result<Vec<PlatformPackageState>, String> {
     let registry = read_registry()?;
+    let mut states = Vec::new();
+    for platform_id in SUPPORTED_PLATFORM_IDS {
+        let (installed_manifest, validation_error) =
+            read_installed_manifest_and_update_state(platform_id)?;
+        let refreshed_registry = read_registry()?;
+        let source_manifest = read_latest_source_manifest(app, platform_id, false);
+        states.push(build_state(
+            platform_id,
+            get_record(&refreshed_registry, platform_id)
+                .or_else(|| get_record(&registry, platform_id)),
+            installed_manifest,
+            source_manifest,
+            validation_error,
+        )?);
+    }
+    Ok(states)
+}
+
+pub fn check_platform_package_update(
+    app: &AppHandle,
+    platform_id: &str,
+) -> Result<PlatformPackageState, String> {
+    ensure_supported_platform(platform_id)?;
+    logger::log_info(&format!(
+        "[PlatformPackage] 强制检查平台包更新: {}",
+        platform_id
+    ));
+
     let (installed_manifest, validation_error) =
-        read_installed_manifest_and_update_state(ZED_PLATFORM_ID)?;
+        read_installed_manifest_and_update_state(platform_id)?;
+    let source_manifest = read_latest_source_manifest(app, platform_id, true);
+    let mut registry = read_registry()?;
+    let existing = get_record(&registry, platform_id).cloned();
+    let installed_version = installed_manifest
+        .as_ref()
+        .map(|manifest| manifest.version.clone())
+        .or_else(|| {
+            existing
+                .as_ref()
+                .and_then(|item| item.installed_version.clone())
+        });
+    let error_message = validation_error.clone().or_else(|| {
+        existing
+            .as_ref()
+            .and_then(|item| item.error_message.clone())
+    });
+    let installed = installed_manifest.is_some()
+        || existing
+            .as_ref()
+            .map(|item| item.installed)
+            .unwrap_or(false);
+    let runtime_ready = installed_manifest.is_some()
+        && validation_error.is_none()
+        && existing
+            .as_ref()
+            .map(|item| item.runtime_ready)
+            .unwrap_or(false);
+
+    upsert_record(
+        &mut registry,
+        PersistedPlatformPackage {
+            platform_id: platform_id.to_string(),
+            installed,
+            runtime_ready,
+            installed_version,
+            last_checked_at: Some(now_ts_ms()),
+            error_message,
+        },
+    );
+    write_registry(&registry)?;
     let refreshed_registry = read_registry()?;
-    let source_manifest = read_latest_source_manifest(app, ZED_PLATFORM_ID, false);
-    Ok(vec![build_state(
-        ZED_PLATFORM_ID,
-        get_record(&refreshed_registry, ZED_PLATFORM_ID)
-            .or_else(|| get_record(&registry, ZED_PLATFORM_ID)),
+
+    build_state(
+        platform_id,
+        get_record(&refreshed_registry, platform_id),
         installed_manifest,
         source_manifest,
         validation_error,
-    )?])
+    )
 }
 
 pub fn install_platform_package(
@@ -1511,6 +1882,26 @@ pub fn uninstall_platform_package(
     ));
     if platform_id == ZED_PLATFORM_ID {
         crate::modules::platform_adapter::stop_zed_runtime_before_uninstall();
+    } else if platform_id == KIRO_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_kiro_runtime_before_uninstall();
+    } else if platform_id == GITHUB_COPILOT_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_github_copilot_runtime_before_uninstall();
+    } else if platform_id == WINDSURF_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_windsurf_runtime_before_uninstall();
+    } else if platform_id == CURSOR_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_cursor_runtime_before_uninstall();
+    } else if platform_id == GEMINI_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_gemini_runtime_before_uninstall();
+    } else if platform_id == TRAE_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_trae_runtime_before_uninstall();
+    } else if platform_id == QODER_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_qoder_runtime_before_uninstall();
+    } else if platform_id == CODEBUDDY_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_codebuddy_runtime_before_uninstall();
+    } else if platform_id == CODEBUDDY_CN_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_codebuddy_cn_runtime_before_uninstall();
+    } else if platform_id == WORKBUDDY_PLATFORM_ID {
+        crate::modules::platform_adapter::stop_workbuddy_runtime_before_uninstall();
     }
 
     let source_manifest = app.and_then(|app| read_latest_source_manifest(app, platform_id, false));
@@ -1583,6 +1974,50 @@ pub fn ensure_platform_package_installed(platform_id: &str) -> Result<(), String
     ))
 }
 
+pub fn get_platform_package_ui_entry(platform_id: &str) -> Result<PlatformPackageUiEntry, String> {
+    ensure_platform_package_installed(platform_id)?;
+    let current_dir = package_current_dir(platform_id)?;
+    let manifest = validate_manifest(platform_id, &current_dir)?;
+    let ui = manifest
+        .ui
+        .clone()
+        .ok_or_else(|| format!("平台包未声明 UI runtime: {}", platform_id))?;
+    let entry_path = safe_relative_path(&ui.entry, "平台包 UI entry")?;
+    let ui_path = current_dir.join(entry_path);
+    let source = fs::read_to_string(&ui_path).map_err(|err| {
+        format!(
+            "读取平台包 UI 失败: path={}, error={}",
+            ui_path.display(),
+            err
+        )
+    })?;
+    let style = match ui.style.as_deref() {
+        Some(style_entry) => {
+            let style_path = safe_relative_path(style_entry, "平台包 UI style")?;
+            let style_path = current_dir.join(style_path);
+            Some(fs::read_to_string(&style_path).map_err(|err| {
+                format!(
+                    "读取平台包 UI style 失败: path={}, error={}",
+                    style_path.display(),
+                    err
+                )
+            })?)
+        }
+        None => None,
+    };
+
+    Ok(PlatformPackageUiEntry {
+        platform_id: platform_id.to_string(),
+        version: manifest.version,
+        protocol: ui.protocol,
+        entry: ui.entry,
+        exports: ui.exports,
+        sandbox: ui.sandbox,
+        source,
+        style,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1592,15 +2027,17 @@ mod tests {
             id: ZED_PLATFORM_ID.to_string(),
             platform_id: ZED_PLATFORM_ID.to_string(),
             version: version.to_string(),
-            api_version: ZED_PACKAGE_API_VERSION,
+            api_version: PLATFORM_PACKAGE_API_VERSION,
             min_core_version: "0.0.0".to_string(),
             display_name: "Zed".to_string(),
             entry: "runtime/index.json".to_string(),
             package_mode: "hotUpdate".to_string(),
             install_kind: "coreNativeBoundary".to_string(),
             adapter: None,
+            ui: None,
             capabilities: vec!["accounts".to_string()],
             contributions: PlatformPackageContributions::default(),
+            changelog: Vec::new(),
             download_size_bytes: None,
             sha256: None,
             signature: None,
@@ -1612,18 +2049,21 @@ mod tests {
             id: ZED_PLATFORM_ID.to_string(),
             platform_id: ZED_PLATFORM_ID.to_string(),
             version: version.to_string(),
-            api_version: ZED_PACKAGE_API_VERSION,
+            api_version: PLATFORM_PACKAGE_API_VERSION,
             min_core_version: "0.0.0".to_string(),
             display_name: "Zed".to_string(),
             entry: "runtime/index.json".to_string(),
             package_mode: "hotUpdate".to_string(),
             install_kind: "coreNativeBoundary".to_string(),
             adapter: None,
-            download_url: "https://example.com/zed.zip".to_string(),
+            ui: None,
             capabilities: vec!["accounts".to_string()],
             contributions: PlatformPackageContributions::default(),
+            changelog: Vec::new(),
+            artifacts: Vec::new(),
+            download_url: Some("https://example.com/zed.zip".to_string()),
             download_size_bytes: Some(1),
-            sha256: "0".repeat(64),
+            sha256: Some("0".repeat(64)),
             signature: None,
         }
     }
@@ -1644,6 +2084,26 @@ mod tests {
             .platforms
             .iter()
             .any(|platform| platform.id == ZED_PLATFORM_ID && platform.page == "zed"));
+    }
+
+    #[test]
+    fn bundled_kiro_source_manifest_matches_runtime() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let source_dir = manifest_dir
+            .parent()
+            .expect("repo root")
+            .join(PLATFORM_PACKAGE_DIR)
+            .join(KIRO_PLATFORM_ID);
+        let manifest =
+            validate_manifest(KIRO_PLATFORM_ID, &source_dir).expect("valid kiro package");
+        assert_eq!(manifest.platform_id, KIRO_PLATFORM_ID);
+        assert_eq!(manifest.package_mode, "hotUpdate");
+        assert_eq!(manifest.install_kind, "sidecarAdapter");
+        assert!(manifest
+            .contributions
+            .platforms
+            .iter()
+            .any(|platform| platform.id == KIRO_PLATFORM_ID && platform.page == "kiro"));
     }
 
     #[test]

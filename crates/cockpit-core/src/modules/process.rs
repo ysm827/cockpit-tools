@@ -2630,7 +2630,7 @@ Start-Process -FilePath $target -ErrorAction Stop | Out-Null"#
     Ok(())
 }
 
-fn detect_codex_exec_path() -> Option<std::path::PathBuf> {
+pub(crate) fn detect_codex_exec_path() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "macos")]
     {
         if let Some(path) = find_codex_process_exe() {
@@ -6753,28 +6753,45 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
         let app_root = app_root.ok_or_else(|| app_path_missing_error("codex"))?;
 
         let codex_home_trimmed = codex_home.trim();
-        let mut args: Vec<String> = Vec::new();
-        for arg in extra_args {
-            if !arg.trim().is_empty() {
-                args.push(arg.to_string());
-            }
-        }
+        let args = build_codex_app_launch_args(extra_args, codex_home_trimmed);
 
         // 使用 open -a 启动，避免 macOS Responsible Process 归因
         // 注意：CODEX_HOME 环境变量无法通过 open -a 传递，
         // 如果指定了 codex_home 则需要回退到直接执行
         if !codex_home_trimmed.is_empty() {
             if let Ok(launch_path) = resolve_codex_launch_path() {
+                let app_user_data_dir =
+                    crate::modules::codex_instance::get_macos_app_user_data_dir(Path::new(
+                        codex_home_trimmed,
+                    ))?;
+                std::fs::create_dir_all(&app_user_data_dir).map_err(|e| {
+                    format!(
+                        "创建 Codex macOS 实例运行目录失败 ({}): {}",
+                        app_user_data_dir.to_string_lossy(),
+                        e
+                    )
+                })?;
+
                 let mut cmd = Command::new(&launch_path);
                 apply_managed_proxy_env_to_command(&mut cmd);
                 sanitize_macos_gui_launch_env(&mut cmd);
                 cmd.env("CODEX_HOME", codex_home_trimmed);
+                cmd.env("CODEX_ELECTRON_USER_DATA_PATH", &app_user_data_dir);
                 for arg in &args {
                     cmd.arg(arg);
                 }
+                cmd.arg(format!(
+                    "--user-data-dir={}",
+                    app_user_data_dir.to_string_lossy()
+                ));
                 let child =
                     spawn_detached_unix(&mut cmd).map_err(|e| format!("启动 Codex 失败: {}", e))?;
-                crate::modules::logger::log_info("Codex 启动命令已发送（直接执行，带 CODEX_HOME）");
+                crate::modules::logger::log_info(&format!(
+                    "[Codex Start] macOS managed instance using --user-data-dir and CODEX_ELECTRON_USER_DATA_PATH; codex_home={} electron_user_data={} launch_path={}",
+                    summarize_text_for_process_log(codex_home_trimmed, 96),
+                    app_user_data_dir.to_string_lossy(),
+                    launch_path.to_string_lossy()
+                ));
                 // 轮询获取真实 PID
                 let probe_started = Instant::now();
                 let timeout = Duration::from_secs(6);
@@ -6839,12 +6856,14 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                 .stdout(Stdio::null())
                 .stderr(Stdio::null());
         }
-        for arg in extra_args {
-            let trimmed = arg.trim();
-            if !trimmed.is_empty() {
-                cmd.arg(trimmed);
-            }
+        let args = build_codex_app_launch_args(extra_args, codex_home_trimmed);
+        for arg in &args {
+            cmd.arg(arg);
         }
+        cmd.arg(format!(
+            "--user-data-dir={}",
+            app_user_data_dir.to_string_lossy()
+        ));
 
         let child =
             spawn_command_with_trace(&mut cmd).map_err(|e| format!("启动 Codex 失败: {}", e))?;
@@ -6889,13 +6908,7 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
         });
         let app_root = app_root.ok_or_else(|| app_path_missing_error("codex"))?;
 
-        let mut args: Vec<String> = Vec::new();
-        for arg in extra_args {
-            let trimmed = arg.trim();
-            if !trimmed.is_empty() {
-                args.push(trimmed.to_string());
-            }
-        }
+        let args = build_codex_default_launch_args(extra_args);
 
         // 使用 open -n -a 启动默认实例，避免复用已运行的其他 Codex 实例
         let open_pid = spawn_open_app_with_options(&app_root, &args, true)
@@ -7025,6 +7038,46 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
         let _ = extra_args;
         Err("Codex 启动仅支持 macOS 和 Windows".to_string())
     }
+}
+
+pub fn start_codex_default_fast_after_close(extra_args: &[String]) -> Result<u32, String> {
+    start_codex_default(extra_args)
+}
+
+fn build_codex_app_launch_args(extra_args: &[String], codex_home: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut index = 0usize;
+    while index < extra_args.len() {
+        let trimmed = extra_args[index].trim();
+        if trimmed.is_empty() {
+            index += 1;
+            continue;
+        }
+        if trimmed == "--remote-debugging-port" {
+            index += 1;
+            if index < extra_args.len() && !extra_args[index].trim().starts_with("--") {
+                index += 1;
+            }
+            continue;
+        }
+        if trimmed.starts_with("--remote-debugging-port=") {
+            index += 1;
+            continue;
+        }
+        args.push(trimmed.to_string());
+        index += 1;
+    }
+    args.push(crate::modules::codex_model_injector::remote_debugging_arg(
+        codex_home.trim(),
+    ));
+    args
+}
+
+fn build_codex_default_launch_args(extra_args: &[String]) -> Vec<String> {
+    let default_home = crate::modules::codex_account::get_codex_home()
+        .to_string_lossy()
+        .to_string();
+    build_codex_app_launch_args(extra_args, &default_home)
 }
 
 /// 关闭受管 Codex 实例（按 CODEX_HOME 匹配，包含默认实例目录）
@@ -7307,6 +7360,10 @@ pub fn close_trae(timeout_secs: u64) -> Result<(), String> {
 
     crate::modules::logger::log_info("Trae 已成功关闭");
     Ok(())
+}
+
+pub fn is_trae_running() -> bool {
+    resolve_trae_pid(None, None).is_some()
 }
 
 /// 检查 OpenCode（桌面端）是否在运行

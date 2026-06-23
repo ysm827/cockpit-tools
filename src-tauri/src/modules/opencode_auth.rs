@@ -1,7 +1,8 @@
 use crate::models::codex::CodexAccount;
 use crate::models::github_copilot::GitHubCopilotAccount;
-use crate::modules::{codex_account, codex_oauth, logger};
-use serde_json::json;
+use crate::modules::logger;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
 
@@ -105,8 +106,19 @@ fn build_github_copilot_payload(
 }
 
 fn decode_token_exp_ms(access_token: &str) -> Option<i64> {
-    let payload = codex_account::decode_jwt_payload(access_token).ok()?;
-    payload.exp.map(|exp| exp * 1000)
+    let payload_base64 = access_token.split('.').nth(1)?;
+    let payload_bytes = URL_SAFE_NO_PAD.decode(payload_base64).ok()?;
+    let payload: Value = serde_json::from_slice(&payload_bytes).ok()?;
+    payload
+        .get("exp")
+        .and_then(Value::as_i64)
+        .map(|exp| exp * 1000)
+}
+
+fn codex_access_token_expired(access_token: &str) -> bool {
+    decode_token_exp_ms(access_token)
+        .map(|expires_at| expires_at <= chrono::Utc::now().timestamp_millis())
+        .unwrap_or(true)
 }
 
 fn replace_provider_entry(provider_key: &str, payload: serde_json::Value) -> Result<(), String> {
@@ -180,7 +192,7 @@ fn replace_provider_entry(provider_key: &str, payload: serde_json::Value) -> Res
 /// 使用 Codex 账号的 token 替换 OpenCode auth.json 中的 openai 记录
 pub fn replace_openai_entry_from_codex(account: &CodexAccount) -> Result<(), String> {
     // 确保 token 未过期
-    if codex_oauth::is_token_expired(&account.tokens.access_token) {
+    if codex_access_token_expired(&account.tokens.access_token) {
         return Err("Codex access_token 已过期，无法同步到 OpenCode".to_string());
     }
 

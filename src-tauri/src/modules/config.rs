@@ -21,6 +21,26 @@ const SERVER_STATUS_FILE: &str = "server.json";
 /// 用户配置文件名
 const USER_CONFIG_FILE: &str = "config.json";
 
+const LOCAL_PROXY_BYPASS_HOSTS: [&str; 5] =
+    ["127.0.0.1", "127.0.0.0/8", "localhost", "::1", "::1/128"];
+
+pub fn merge_local_no_proxy(raw: &str) -> String {
+    let mut values: Vec<String> = raw
+        .split(',')
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(str::to_string)
+        .collect();
+
+    for host in LOCAL_PROXY_BYPASS_HOSTS {
+        if !values.iter().any(|item| item.eq_ignore_ascii_case(host)) {
+            values.push(host.to_string());
+        }
+    }
+
+    values.join(",")
+}
+
 /// 服务状态（写入共享文件供其他客户端读取）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerStatus {
@@ -1098,8 +1118,7 @@ fn managed_proxy_env_pairs(config: &UserConfig) -> Vec<(&'static str, String)> {
         pairs.push((key, proxy_url.to_string()));
     }
 
-    let no_proxy =
-        crate::modules::codex_protocol::merge_local_no_proxy(config.global_proxy_no_proxy.trim());
+    let no_proxy = merge_local_no_proxy(config.global_proxy_no_proxy.trim());
     if !no_proxy.is_empty() {
         for key in MANAGED_PROXY_NO_PROXY_KEYS {
             pairs.push((key, no_proxy.clone()));

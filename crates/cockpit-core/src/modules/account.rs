@@ -25,6 +25,7 @@ const LIST_ACCOUNTS_CACHE_TTL_MS: u64 = 800;
 
 // 使用与 AntigravityCockpit 插件相同的数据目录
 const DATA_DIR: &str = ".antigravity_cockpit";
+const PROFILE_ENV: &str = "COCKPIT_TOOLS_PROFILE";
 
 const ACCOUNTS_INDEX: &str = "accounts.json";
 const ACCOUNTS_DIR: &str = "accounts";
@@ -65,6 +66,13 @@ fn write_list_accounts_cache(accounts: &[Account]) {
         });
     }
 }
+/// 获取数据目录路径
+pub fn is_dev_profile() -> bool {
+    std::env::var(PROFILE_ENV)
+        .map(|value| value.trim().eq_ignore_ascii_case("dev"))
+        .unwrap_or(false)
+}
+
 /// 获取数据目录路径
 pub fn get_data_dir() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or("无法获取用户主目录")?;

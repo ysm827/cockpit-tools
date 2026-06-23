@@ -75,9 +75,98 @@
   background: color-mix(in srgb, var(--bg-secondary) 84%, var(--warning) 10%);
 }
 
+.stat-card.is-package-status-info {
+  background: color-mix(in srgb, var(--bg-card) 84%, var(--primary) 6%);
+}
+
+.stat-card.is-package-status-info:hover {
+  background: color-mix(in srgb, var(--bg-secondary) 84%, var(--primary) 8%);
+}
+
+.stat-card.is-package-status-danger {
+  background: color-mix(in srgb, var(--bg-card) 84%, var(--danger) 6%);
+}
+
+.stat-card.is-package-status-danger:hover {
+  background: color-mix(in srgb, var(--bg-secondary) 84%, var(--danger) 8%);
+}
+
 .stat-value.is-package-install-required-value {
   font-size: 15px;
   color: var(--warning);
+}
+
+.stat-value.is-package-status-info {
+  color: var(--primary);
+}
+
+.stat-value.is-package-status-danger {
+  color: var(--danger);
+}
+
+.platform-package-card-status {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.platform-package-card-status.is-info {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.platform-package-card-status.is-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+
+.platform-package-card-status.is-muted {
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--bg-secondary);
+}
+
+.platform-package-dashboard-state {
+  min-height: 164px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  color: var(--text-secondary);
+}
+
+.platform-package-dashboard-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.platform-package-dashboard-state strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.platform-package-dashboard-state p {
+  margin: 0;
+  line-height: 1.6;
 }
 
 .stat-icon-bg {

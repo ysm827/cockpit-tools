@@ -30,7 +30,7 @@ pub fn get_callback_port() -> u16 {
     OAUTH_CALLBACK_PORT
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexOAuthLoginStartResponse {
     pub login_id: String,

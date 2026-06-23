@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{SecondsFormat, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 
 use crate::modules;
@@ -17,7 +17,7 @@ const GLOBAL_STATE_FILE: &str = ".codex-global-state.json";
 const BACKUP_FILE_NAMES: [&str; 2] = [SESSION_INDEX_FILE, GLOBAL_STATE_FILE];
 const SESSION_DIRS: [&str; 2] = ["sessions", "archived_sessions"];
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexInstanceThreadSyncItem {
     pub instance_id: String,
@@ -27,7 +27,7 @@ pub struct CodexInstanceThreadSyncItem {
     pub backup_dir: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexInstanceThreadSyncSummary {
     pub instance_count: usize,
@@ -41,7 +41,7 @@ pub struct CodexInstanceThreadSyncSummary {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexInstanceTargetThreadSyncSummary {
     pub requested_session_count: usize,

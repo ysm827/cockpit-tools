@@ -50,6 +50,16 @@ pub struct NetworkConfig {
     pub global_proxy_no_proxy: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeDesktopLaunchCandidate {
+    pub target_type: String,
+    pub label: String,
+    pub target: String,
+    pub source: String,
+    pub supports_multi_instance: bool,
+}
+
 /// 通用设置配置（前端使用）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneralConfig {
@@ -2893,40 +2903,45 @@ pub fn set_claude_app_scan_roots(scan_roots: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn set_codex_launch_on_switch(enabled: bool) -> Result<(), String> {
-    let current = config::get_user_config();
-    if current.codex_launch_on_switch == enabled {
-        return Ok(());
-    }
-    let new_config = UserConfig {
-        codex_launch_on_switch: enabled,
-        ..current
-    };
-    config::save_user_config(&new_config)
+    modules::platform_adapter::call_codex(
+        "settings.setLaunchOnSwitch",
+        serde_json::json!({ "enabled": enabled }),
+    )
 }
 
 #[tauri::command]
 pub fn set_codex_local_access_entry_visible(enabled: bool) -> Result<(), String> {
-    let current = config::get_user_config();
-    if current.codex_local_access_entry_visible == enabled {
-        return Ok(());
-    }
-    let new_config = UserConfig {
-        codex_local_access_entry_visible: enabled,
-        ..current
-    };
-    config::save_user_config(&new_config)
+    modules::platform_adapter::call_codex(
+        "settings.setLocalAccessEntryVisible",
+        serde_json::json!({ "enabled": enabled }),
+    )
 }
 
 #[tauri::command]
 pub fn detect_app_path(app: String, force: Option<bool>) -> Result<Option<String>, String> {
     let force = force.unwrap_or(false);
     match app.as_str() {
-        "windsurf" => Ok(modules::windsurf_instance::detect_and_save_windsurf_launch_path(force)),
-        "kiro" => Ok(modules::kiro_instance::detect_and_save_kiro_launch_path(
-            force,
-        )),
-        "cursor" => Ok(modules::cursor_instance::detect_and_save_cursor_launch_path(force)),
-        "claude" => Ok(modules::claude_instance::detect_and_save_claude_launch_path(force)),
+        "windsurf" => modules::platform_adapter::call_windsurf(
+            "runtime.detectLaunchPath",
+            serde_json::json!({ "force": force }),
+        ),
+        "kiro" => modules::platform_adapter::call_kiro(
+            "runtime.detectLaunchPath",
+            serde_json::json!({ "force": force }),
+        ),
+        "cursor" => modules::platform_adapter::call_cursor(
+            "runtime.detectLaunchPath",
+            serde_json::json!({ "force": force }),
+        ),
+        "claude" => {
+            if !modules::platform_package::is_platform_package_installed("claude_manager") {
+                return Ok(None);
+            }
+            modules::platform_adapter::call_claude_manager(
+                "runtime.detectLaunchPath",
+                serde_json::json!({ "force": force }),
+            )
+        }
         "antigravity" | "antigravity_ide" | "antigravity_legacy" | "codex" | "zed" | "vscode"
         | "codebuddy" | "codebuddy_cn" | "qoder" | "trae" | "opencode" | "workbuddy" => Ok(
             modules::process::detect_and_save_app_path(app.as_str(), force),
@@ -2938,12 +2953,14 @@ pub fn detect_app_path(app: String, force: Option<bool>) -> Result<Option<String
 #[tauri::command]
 pub fn scan_claude_desktop_launch_targets(
     scan_roots: Option<String>,
-) -> Result<Vec<modules::claude_instance::ClaudeDesktopLaunchCandidate>, String> {
-    let roots = scan_roots
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty());
-    Ok(modules::claude_instance::scan_claude_desktop_launch_targets(roots))
+) -> Result<Vec<ClaudeDesktopLaunchCandidate>, String> {
+    if !modules::platform_package::is_platform_package_installed("claude_manager") {
+        return Ok(Vec::new());
+    }
+    modules::platform_adapter::call_claude_manager(
+        "runtime.scanLaunchTargets",
+        serde_json::json!({ "scanRoots": scan_roots }),
+    )
 }
 
 #[tauri::command]

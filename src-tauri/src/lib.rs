@@ -227,20 +227,41 @@ pub fn run() {
                 modules::web_report::start_server().await;
             });
 
-            tauri::async_runtime::spawn(async {
-                modules::codex_local_access::restore_local_access_gateway().await;
-            });
-
             {
-                let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    modules::codex_oauth::restore_pending_oauth_listener(app_handle);
-                    modules::windsurf_oauth::restore_pending_oauth_listener();
-                    modules::kiro_oauth::restore_pending_oauth_listener();
-                    modules::trae_oauth::restore_pending_oauth_listener();
-                    modules::gemini_oauth::restore_pending_oauth_state();
+                    modules::platform_adapter::restore_codex_runtime();
                     if modules::platform_package::is_platform_package_installed("zed") {
                         modules::platform_adapter::restore_zed_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("kiro") {
+                        modules::platform_adapter::restore_kiro_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("github-copilot") {
+                        modules::platform_adapter::restore_github_copilot_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("windsurf") {
+                        modules::platform_adapter::restore_windsurf_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("cursor") {
+                        modules::platform_adapter::restore_cursor_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("gemini") {
+                        modules::platform_adapter::restore_gemini_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("trae") {
+                        modules::platform_adapter::restore_trae_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("qoder") {
+                        modules::platform_adapter::restore_qoder_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("codebuddy") {
+                        modules::platform_adapter::restore_codebuddy_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("codebuddy_cn") {
+                        modules::platform_adapter::restore_codebuddy_cn_runtime();
+                    }
+                    if modules::platform_package::is_platform_package_installed("workbuddy") {
+                        modules::platform_adapter::restore_workbuddy_runtime();
                     }
                 });
             }
@@ -248,8 +269,6 @@ pub fn run() {
             modules::provider_token_keeper::ensure_started(app.handle().clone());
             modules::wakeup_scheduler::restore_state_from_disk();
             modules::wakeup_scheduler::ensure_started(app.handle().clone());
-            modules::codex_wakeup_scheduler::ensure_started(app.handle().clone());
-            modules::codex_wakeup_scheduler::trigger_startup_tasks_if_needed(app.handle().clone());
 
             #[cfg(target_os = "macos")]
             apply_macos_activation_policy(&app.handle());
@@ -850,9 +869,11 @@ pub fn run() {
             commands::zed::zed_focus_default_session,
             // Platform Package Commands
             commands::platform_package::list_platform_packages,
+            commands::platform_package::check_platform_package_update,
             commands::platform_package::install_platform_package,
             commands::platform_package::update_platform_package,
             commands::platform_package::uninstall_platform_package,
+            commands::platform_package::get_platform_package_ui_entry,
             // Qoder Instance Commands
             commands::qoder_instance::qoder_get_instance_defaults,
             commands::qoder_instance::qoder_list_instances,
@@ -1016,9 +1037,7 @@ pub fn run() {
     app.run(|app_handle, event| {
         match &event {
             RunEvent::ExitRequested { .. } | RunEvent::Exit => {
-                tauri::async_runtime::block_on(async {
-                    modules::codex_local_access::shutdown_local_access_gateway_for_app_exit().await;
-                });
+                modules::platform_adapter::shutdown_codex_runtime_for_app_exit();
             }
             _ => {}
         }

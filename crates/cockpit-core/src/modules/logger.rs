@@ -10,6 +10,7 @@ use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 const LOG_FILE_PREFIX: &str = "app.log";
+const CODEX_API_LOG_TARGET: &str = "codex_api";
 const LOG_RETENTION_DAYS: i64 = 3;
 const DEFAULT_LOG_TAIL_LINES: usize = 200;
 const MIN_LOG_TAIL_LINES: usize = 20;
@@ -255,6 +256,18 @@ pub fn log_warn(message: &str) {
 
 pub fn log_error(message: &str) {
     error!("{}", sanitize_message(message));
+}
+
+pub fn log_codex_api_info(message: &str) {
+    info!(target: CODEX_API_LOG_TARGET, "{}", sanitize_message(message));
+}
+
+pub fn log_codex_api_warn(message: &str) {
+    warn!(target: CODEX_API_LOG_TARGET, "{}", sanitize_message(message));
+}
+
+pub fn log_codex_api_error(message: &str) {
+    error!(target: CODEX_API_LOG_TARGET, "{}", sanitize_message(message));
 }
 
 fn sanitize_message(message: &str) -> String {

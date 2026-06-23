@@ -1865,7 +1865,7 @@ pub async fn trigger_wakeup(
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AvailableModel {
     pub id: String,

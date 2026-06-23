@@ -61,7 +61,7 @@ impl CodexSessionVisibilityAutoRepairMode {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairProgress {
     pub run_id: Option<String>,
@@ -74,7 +74,7 @@ pub struct CodexSessionVisibilityRepairProgress {
     pub instance_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CodexSessionVisibilityRepairProviderSource {
     Config,
@@ -82,7 +82,7 @@ pub enum CodexSessionVisibilityRepairProviderSource {
     Sqlite,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairProviderOption {
     pub id: String,
@@ -90,14 +90,14 @@ pub struct CodexSessionVisibilityRepairProviderOption {
     pub is_default: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairProviderList {
     pub default_provider: String,
     pub providers: Vec<CodexSessionVisibilityRepairProviderOption>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairInstanceOption {
     pub id: String,
@@ -108,14 +108,14 @@ pub struct CodexSessionVisibilityRepairInstanceOption {
     pub running: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairInstanceList {
     pub default_instance_id: String,
     pub instances: Vec<CodexSessionVisibilityRepairInstanceOption>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairItem {
     pub instance_id: String,
@@ -132,7 +132,7 @@ pub struct CodexSessionVisibilityRepairItem {
     pub running: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionVisibilityRepairSummary {
     pub instance_count: usize,

@@ -13,11 +13,9 @@ import {
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
-  Download,
   GripVertical,
   Pencil,
   Plus,
-  RefreshCw,
   Trash2,
   Upload,
   X,
@@ -435,14 +433,8 @@ export function PlatformLayoutModal({
   const [childDraftIconCustomDataUrl, setChildDraftIconCustomDataUrl] = useState('');
   const [childDraftSetDefault, setChildDraftSetDefault] = useState(false);
   const [childDraftError, setChildDraftError] = useState('');
-  const [platformPackageActionKey, setPlatformPackageActionKey] = useState<string | null>(null);
-  const [platformPackageErrors, setPlatformPackageErrors] = useState<Record<string, string>>({});
   const platformPackages = usePlatformPackageStore((state) => state.packages);
-  const platformPackageLoading = usePlatformPackageStore((state) => state.loading);
   const refreshPlatformPackages = usePlatformPackageStore((state) => state.refresh);
-  const installPackage = usePlatformPackageStore((state) => state.installPackage);
-  const updatePackage = usePlatformPackageStore((state) => state.updatePackage);
-  const uninstallPackage = usePlatformPackageStore((state) => state.uninstallPackage);
 
   const platformPackageMap = useMemo<Record<string, PlatformPackageState>>(() => {
     const next: Record<string, PlatformPackageState> = {};
@@ -467,10 +459,6 @@ export function PlatformLayoutModal({
     refreshPlatformPackages()
       .catch((error) => {
         console.error('加载平台包状态失败:', error);
-        setPlatformPackageErrors((prev) => ({
-          ...prev,
-          _global: error instanceof Error ? error.message : String(error),
-        }));
       });
   }, [open, refreshPlatformPackages]);
 
@@ -650,143 +638,18 @@ export function PlatformLayoutModal({
     }
   };
 
-  const handlePlatformPackageAction = async (
-    platformId: PlatformId,
-    action: 'install' | 'update' | 'uninstall',
-  ) => {
-    const actionKey = `${platformId}:${action}`;
-    setPlatformPackageActionKey(actionKey);
-    setPlatformPackageErrors((prev) => {
-      const next = { ...prev };
-      delete next[platformId];
-      return next;
-    });
-
-    try {
-      const nextState = action === 'install'
-        ? await installPackage(platformId)
-        : action === 'update'
-          ? await updatePackage(platformId)
-          : await uninstallPackage(platformId);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent('agtools:platform-package-changed', {
-            detail: nextState,
-          }),
-        );
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPlatformPackageErrors((prev) => ({
-        ...prev,
-        [platformId]: message,
-      }));
-    } finally {
-      setPlatformPackageActionKey(null);
-    }
-  };
-
   const renderPackageMeta = (platformId: PlatformId | null | undefined, compact = false) => {
     const state = getPackageState(platformId);
     if (!state || state.packageMode !== 'hotUpdate') {
       return null;
     }
-    const error = platformId ? platformPackageErrors[platformId] : '';
     return (
       <span
         className={`platform-layout-package-meta is-${state.installStatus} ${compact ? 'is-compact' : ''}`}
-        title={error || packageStatusText(state)}
+        title={packageStatusText(state)}
       >
         <span>{packageStatusText(state)}</span>
-        {error && <span className="platform-layout-package-error">{error}</span>}
       </span>
-    );
-  };
-
-  const renderPackageAction = (platformId: PlatformId | null | undefined) => {
-    const state = getPackageState(platformId);
-    if (!platformId || !state || state.packageMode !== 'hotUpdate') {
-      return null;
-    }
-    const operating = platformPackageActionKey?.startsWith(`${platformId}:`) || platformPackageLoading;
-    const hasInstalledPackage = Boolean(
-      state.runtimeReady
-      || state.installedVersion
-      || state.installedSizeBytes,
-    );
-    const installAction = (
-      <button
-        type="button"
-        className="action-btn platform-layout-package-action"
-        onClick={() => handlePlatformPackageAction(platformId, 'install')}
-        disabled={operating}
-        title={state.installStatus === 'error'
-          ? t('platformLayout.packageRepair', '修复')
-          : t('platformLayout.packageDownload', '下载')}
-        aria-label={state.installStatus === 'error'
-          ? t('platformLayout.packageRepair', '修复')
-          : t('platformLayout.packageDownload', '下载')}
-      >
-        {operating ? <RefreshCw size={13} className="loading-spinner" /> : <Download size={13} />}
-      </button>
-    );
-    const updateAction = (
-      <button
-        type="button"
-        className="action-btn platform-layout-package-action"
-        onClick={() => handlePlatformPackageAction(platformId, 'update')}
-        disabled={operating}
-        title={t('platformLayout.packageUpdate', '更新')}
-        aria-label={t('platformLayout.packageUpdate', '更新')}
-      >
-        <RefreshCw size={13} className={operating ? 'loading-spinner' : ''} />
-      </button>
-    );
-    const uninstallAction = (
-      <button
-        type="button"
-        className="action-btn is-danger platform-layout-package-action"
-        onClick={() => handlePlatformPackageAction(platformId, 'uninstall')}
-        disabled={operating}
-        title={t('platformLayout.packageUninstall', '卸载')}
-        aria-label={t('platformLayout.packageUninstall', '卸载')}
-      >
-        {operating ? <RefreshCw size={13} className="loading-spinner" /> : <Trash2 size={13} />}
-      </button>
-    );
-
-    if (state.installStatus === 'notInstalled') {
-      return installAction;
-    }
-    if (state.installStatus === 'error') {
-      return (
-        <>
-          {installAction}
-          {hasInstalledPackage && uninstallAction}
-        </>
-      );
-    }
-    if (state.installStatus === 'updateAvailable') {
-      return (
-        <>
-          {updateAction}
-          {uninstallAction}
-        </>
-      );
-    }
-    if (state.installStatus === 'installed') {
-      return uninstallAction;
-    }
-    return (
-      <button
-        type="button"
-        className="action-btn platform-layout-package-action"
-        disabled
-        title={packageStatusText(state)}
-        aria-label={packageStatusText(state)}
-      >
-        <RefreshCw size={13} className={operating ? 'loading-spinner' : ''} />
-      </button>
     );
   };
 
@@ -1399,12 +1262,6 @@ export function PlatformLayoutModal({
               { max: sidebarSelectionLimit },
             )}
           </div>
-          {platformPackageErrors._global && (
-            <div className="platform-layout-package-global-error">
-              {platformPackageErrors._global}
-            </div>
-          )}
-
           <div className="platform-layout-bulk-header">
             <div className="platform-layout-bulk-header-left">
               <button type="button" className="btn btn-secondary platform-layout-expand-all-btn" onClick={toggleExpandAll}>
@@ -1630,17 +1487,15 @@ export function PlatformLayoutModal({
                       </label>
 
                       {entry.group ? (
-                        renderPackageAction(entryPackagePlatformId) ?? (
-                          <button
-                            type="button"
-                            className="action-btn"
-                            onClick={() => openEditGroupEditor(entry.group!)}
-                            title={t('platformLayout.editGroup', '编辑')}
-                            aria-label={t('platformLayout.editGroup', '编辑')}
-                          >
-                            <Pencil size={13} />
-                          </button>
-                        )
+                        <button
+                          type="button"
+                          className="action-btn"
+                          onClick={() => openEditGroupEditor(entry.group!)}
+                          title={t('platformLayout.editGroup', '编辑')}
+                          aria-label={t('platformLayout.editGroup', '编辑')}
+                        >
+                          <Pencil size={13} />
+                        </button>
                       ) : isApiRelayEntry ? (
                         <button
                           type="button"
@@ -1652,7 +1507,7 @@ export function PlatformLayoutModal({
                           <Pencil size={13} />
                         </button>
                       ) : (
-                        renderPackageAction(entry.defaultPlatformId) ?? <span className="platform-layout-empty-edit-slot" />
+                        <span className="platform-layout-empty-edit-slot" />
                       )}
                     </div>
                   </div>
@@ -1778,7 +1633,6 @@ export function PlatformLayoutModal({
                                 {childName}
                               </span>
                               {renderPackageMeta(platformId, true)}
-                              {renderPackageAction(platformId)}
                             </div>
 
                             <div className="platform-layout-controls-grid is-child-grid">

@@ -24,7 +24,6 @@ import { Page } from './types/navigation';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { useEasterEggTrigger } from './hooks/useEasterEggTrigger';
 import { useGlobalModal } from './hooks/useGlobalModal';
-import { usePlatformPackageInstallPrompt } from './hooks/usePlatformPackageInstallPrompt';
 import { changeLanguage, getCurrentLanguage, normalizeLanguage, syncLanguage } from './i18n';
 import { useAccountStore } from './stores/useAccountStore';
 import { useCodexAccountStore } from './stores/useCodexAccountStore';
@@ -46,7 +45,6 @@ import { usePlatformPackageStore } from './stores/usePlatformPackageStore';
 import { useTopRightAdStore } from './stores/useTopRightAdStore';
 import { useSponsorStore } from './stores/useSponsorStore';
 import { useRemoteConfigStore } from './stores/useRemoteConfigStore';
-import type { PlatformId } from './types/platform';
 import type { UpdateCheckResult, UpdateInfo } from './components/UpdateNotification';
 import type { Update as UpdaterUpdate } from '@tauri-apps/plugin-updater';
 import { parseUpdaterReleaseNotes, resolveUpdaterDownloadUrl } from './utils/updaterReleaseNotes';
@@ -232,15 +230,6 @@ const WAKEUP_FORCE_DISABLE_MIGRATION_KEY = 'agtools.wakeup.migration.force_disab
 const TOP_RIGHT_AD_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const REMOTE_CONFIG_FALLBACK_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 const EXTERNAL_IMPORT_DEDUPE_WINDOW_MS = 30 * 1000;
-
-function getRuntimeManagedPlatformForPage(page: Page): PlatformId | null {
-  return page === 'zed' ? 'zed' : null;
-}
-
-function canOpenRuntimeManagedPage(page: Page): boolean {
-  const platformId = getRuntimeManagedPlatformForPage(page);
-  return platformId ? usePlatformPackageStore.getState().canOpenPlatform(platformId) : true;
-}
 
 type WakeupHistoryRecord = {
   id: string;
@@ -592,10 +581,8 @@ function MainApp() {
   const fetchSponsorModuleState = useSponsorStore((state) => state.fetchState);
   const sponsorModuleInitialized = useSponsorStore((state) => state.initialized);
   const fetchRemoteConfigState = useRemoteConfigStore((state) => state.fetchState);
-  const platformPackages = usePlatformPackageStore((state) => state.packages);
-  const platformPackagesInitialized = usePlatformPackageStore((state) => state.initialized);
   const refreshPlatformPackages = usePlatformPackageStore((state) => state.refresh);
-  const { ensurePlatformInstalledAndOpen } = usePlatformPackageInstallPrompt();
+  const codexRuntimeReady = usePlatformPackageStore((state) => state.canOpenPlatform('codex'));
   const sponsorEntryVisible = Boolean(sponsorModuleState.sponsorModule);
   const [topRightAdVisible, setTopRightAdVisible] = useState(true);
   const trayRefreshInFlightRef = useRef(false);
@@ -608,16 +595,8 @@ function MainApp() {
     setShowBreakout(true);
   }, []);
   const setPageWithRuntimeGate = useCallback((nextPage: Page) => {
-    const platformId = getRuntimeManagedPlatformForPage(nextPage);
-    if (!platformId) {
-      setPage(nextPage);
-      return;
-    }
-    const handled = ensurePlatformInstalledAndOpen(platformId, () => setPage(nextPage));
-    if (!handled) {
-      setPage('dashboard');
-    }
-  }, [ensurePlatformInstalledAndOpen]);
+    setPage(nextPage);
+  }, []);
   const isAppPathMissingSessionActive = useCallback((session: number) => (
     appPathMissingSessionRef.current === session
   ), []);
@@ -783,15 +762,6 @@ function MainApp() {
       window.removeEventListener('agtools:platform-package-changed', handlePackageChanged);
     };
   }, [refreshPlatformPackages]);
-
-  useEffect(() => {
-    if (!platformPackagesInitialized) {
-      return;
-    }
-    if (!canOpenRuntimeManagedPage(page)) {
-      setPage('dashboard');
-    }
-  }, [page, platformPackages, platformPackagesInitialized]);
 
   useEffect(() => {
     let disposed = false;
@@ -2468,9 +2438,19 @@ function MainApp() {
                   try {
                     const targetAccountId = payload.recommended_account_id as string;
                     if (platform === 'codex') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('codex')) {
+                        setPageWithRuntimeGate('codex');
+                        closeModal();
+                        return;
+                      }
                       await useCodexAccountStore.getState().switchAccount(targetAccountId);
                       setPage('codex');
                     } else if (platform === 'claude') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('claude_manager')) {
+                        setPageWithRuntimeGate('claude');
+                        closeModal();
+                        return;
+                      }
                       await useClaudeAccountStore.getState().switchAccount(targetAccountId);
                       setPage('claude');
                     } else if (platform === 'github_copilot') {
@@ -2489,18 +2469,43 @@ function MainApp() {
                       await useGeminiAccountStore.getState().switchAccount(targetAccountId);
                       setPage('gemini');
                     } else if (platform === 'codebuddy') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy')) {
+                        setPageWithRuntimeGate('codebuddy');
+                        closeModal();
+                        return;
+                      }
                       await useCodebuddyAccountStore.getState().switchAccount(targetAccountId);
                       setPage('codebuddy');
                     } else if (platform === 'codebuddy_cn') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy_cn')) {
+                        setPageWithRuntimeGate('codebuddy-cn');
+                        closeModal();
+                        return;
+                      }
                       await useCodebuddyCnAccountStore.getState().switchAccount(targetAccountId);
                       setPage('codebuddy-cn');
                     } else if (platform === 'qoder') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('qoder')) {
+                        setPageWithRuntimeGate('qoder');
+                        closeModal();
+                        return;
+                      }
                       await useQoderAccountStore.getState().switchAccount(targetAccountId);
                       setPage('qoder');
                     } else if (platform === 'trae') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('trae')) {
+                        setPageWithRuntimeGate('trae');
+                        closeModal();
+                        return;
+                      }
                       await useTraeAccountStore.getState().switchAccount(targetAccountId);
                       setPage('trae');
                     } else if (platform === 'workbuddy') {
+                      if (!usePlatformPackageStore.getState().canOpenPlatform('workbuddy')) {
+                        setPageWithRuntimeGate('workbuddy');
+                        closeModal();
+                        return;
+                      }
                       await useWorkbuddyAccountStore.getState().switchAccount(targetAccountId);
                       setPage('workbuddy');
                     } else if (platform === 'zed') {
@@ -2741,8 +2746,30 @@ function MainApp() {
       try {
         await Promise.all(
           refreshTasks.map(({ command, errorMessage }) =>
-            command === 'refresh_all_zed_tokens'
-              && !usePlatformPackageStore.getState().canOpenPlatform('zed')
+            ((command === 'refresh_current_codex_quota'
+              && !usePlatformPackageStore.getState().canOpenPlatform('codex'))
+              || (command === 'refresh_all_zed_tokens'
+              && !usePlatformPackageStore.getState().canOpenPlatform('zed'))
+              || (command === 'refresh_all_claude_quotas'
+                && !usePlatformPackageStore.getState().canOpenPlatform('claude_manager'))
+              || (command === 'refresh_all_github_copilot_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('github-copilot'))
+              || (command === 'refresh_all_windsurf_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('windsurf'))
+              || (command === 'refresh_all_kiro_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('kiro'))
+              || (command === 'refresh_all_cursor_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('cursor'))
+              || (command === 'refresh_all_gemini_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('gemini'))
+              || (command === 'refresh_all_codebuddy_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('codebuddy'))
+              || (command === 'refresh_all_codebuddy_cn_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('codebuddy_cn'))
+              || (command === 'refresh_all_qoder_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('qoder'))
+              || (command === 'refresh_all_trae_tokens'
+                && !usePlatformPackageStore.getState().canOpenPlatform('trae')))
               ? Promise.resolve()
               : invoke(command).catch((error) => {
                   console.error(errorMessage, error);
@@ -2766,6 +2793,20 @@ function MainApp() {
     const handlePayload = (payload: unknown) => {
       if (!payload || typeof payload !== 'object') return;
       const detail = payload as AppPathMissingDetail;
+      if (
+        detail.app === 'codex' &&
+        !usePlatformPackageStore.getState().canOpenPlatform('codex')
+      ) {
+        setPageWithRuntimeGate('codex');
+        return;
+      }
+      if (
+        detail.app === 'claude' &&
+        !usePlatformPackageStore.getState().canOpenPlatform('claude_manager')
+      ) {
+        setPageWithRuntimeGate('claude');
+        return;
+      }
       if (
         detail.app !== 'antigravity' &&
         detail.app !== 'codex' &&
@@ -2947,6 +2988,7 @@ function MainApp() {
         if (!isAppPathMissingSessionActive(session)) return;
         setPageWithRuntimeGate('zed');
       } else if (retry?.kind === 'switchAccount' && retry.accountId && app === 'claude') {
+        if (!usePlatformPackageStore.getState().canOpenPlatform('claude_manager')) return;
         await useClaudeAccountStore.getState().switchAccount(retry.accountId);
         if (!isAppPathMissingSessionActive(session)) return;
         await useClaudeAccountStore.getState().fetchCurrentAccountId();
@@ -2965,8 +3007,10 @@ function MainApp() {
         if (!isAppPathMissingSessionActive(session)) return;
       } else if (retry?.kind === 'instance' && retry.instanceId) {
         if (app === 'codex') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('codex')) return;
           await invoke('codex_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'claude') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('claude_manager')) return;
           await invoke('claude_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'vscode') {
           await invoke('github_copilot_start_instance', { instanceId: retry.instanceId });
@@ -2975,14 +3019,19 @@ function MainApp() {
         } else if (app === 'kiro') {
           await invoke('kiro_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'cursor') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('cursor')) return;
           await invoke('cursor_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'codebuddy') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy')) return;
           await invoke('codebuddy_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'codebuddy_cn') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy_cn')) return;
           await invoke('codebuddy_cn_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'qoder') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('qoder')) return;
           await invoke('qoder_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'trae') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('trae')) return;
           await invoke('trae_start_instance', { instanceId: retry.instanceId });
         } else if (app === 'zed') {
           await invoke('zed_start_default_session');
@@ -2992,8 +3041,10 @@ function MainApp() {
         if (!isAppPathMissingSessionActive(session)) return;
       } else {
         if (app === 'codex') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('codex')) return;
           await invoke('codex_start_instance', { instanceId: '__default__' });
         } else if (app === 'claude') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('claude_manager')) return;
           await invoke('claude_start_instance', { instanceId: '__default__' });
         } else if (app === 'vscode') {
           await invoke('github_copilot_start_instance', { instanceId: '__default__' });
@@ -3002,14 +3053,19 @@ function MainApp() {
         } else if (app === 'kiro') {
           await invoke('kiro_start_instance', { instanceId: '__default__' });
         } else if (app === 'cursor') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('cursor')) return;
           await invoke('cursor_start_instance', { instanceId: '__default__' });
         } else if (app === 'codebuddy') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy')) return;
           await invoke('codebuddy_start_instance', { instanceId: '__default__' });
         } else if (app === 'codebuddy_cn') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('codebuddy_cn')) return;
           await invoke('codebuddy_cn_start_instance', { instanceId: '__default__' });
         } else if (app === 'qoder') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('qoder')) return;
           await invoke('qoder_start_instance', { instanceId: '__default__' });
         } else if (app === 'trae') {
+          if (!usePlatformPackageStore.getState().canOpenPlatform('trae')) return;
           await invoke('trae_start_instance', { instanceId: '__default__' });
         } else if (app === 'zed') {
           await invoke('zed_start_default_session');
@@ -3684,7 +3740,11 @@ function MainApp() {
           {page === 'codex' && <CodexAccountsPage />}
           {page === 'claude' && <ClaudeAccountsPage subPlatform="desktop" />}
           {page === 'claude-cli' && <ClaudeAccountsPage subPlatform="cli" />}
-          {page === 'codex-api-service' && <CodexApiServicePage />}
+          {page === 'codex-api-service' && (
+            codexRuntimeReady
+              ? <CodexApiServicePage />
+              : <CodexAccountsPage />
+          )}
           {page === 'github-copilot' && <GitHubCopilotAccountsPage />}
           {page === 'windsurf' && <WindsurfAccountsPage />}
           {page === 'kiro' && <KiroAccountsPage />}

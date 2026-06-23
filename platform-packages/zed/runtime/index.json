@@ -36,6 +36,15 @@
       "runtime.focusDefault"
     ]
   },
+  "ui": {
+    "protocol": "react-remote-esm-v1",
+    "entry": "ui/remoteEntry.js",
+    "style": "ui/style.css",
+    "exports": [
+      "mount",
+      "unmount"
+    ]
+  },
   "capabilities": [
     "accounts",
     "oauth",

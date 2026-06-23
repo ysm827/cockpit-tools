@@ -26,10 +26,10 @@ import { setAntigravityRuntimeTargetFromPlatform } from '../../utils/antigravity
 import { useRemoteConfigStore } from '../../stores/useRemoteConfigStore';
 import {
   canShowPlatformEntryFromPackages,
-  isPlatformPackageInstallRequiredFromPackages,
+  getPlatformPackageFromPackages,
   usePlatformPackageStore,
 } from '../../stores/usePlatformPackageStore';
-import { usePlatformPackageInstallPrompt } from '../../hooks/usePlatformPackageInstallPrompt';
+import { getPlatformPackageShortStatus } from '../PlatformPackageToolbar';
 
 interface SideNavProps {
   page: Page;
@@ -192,15 +192,13 @@ export function SideNav({
     ),
     [platformPackages, platformPackagesInitialized],
   );
-  const isPackageInstallRequired = useCallback(
-    (platformId: PlatformId) => isPlatformPackageInstallRequiredFromPackages(
-      platformPackages,
-      platformPackagesInitialized,
-      platformId,
+  const getPackageEntryStatus = useCallback(
+    (platformId: PlatformId) => getPlatformPackageShortStatus(
+      getPlatformPackageFromPackages(platformPackages, platformId),
+      t,
     ),
-    [platformPackages, platformPackagesInitialized],
+    [platformPackages, t],
   );
-  const { ensurePlatformInstalledAndOpen } = usePlatformPackageInstallPrompt();
 
   const antigravityRuntimeTarget = useAntigravityRuntimeTarget();
   const currentPlatformId = page === 'overview'
@@ -332,16 +330,9 @@ export function SideNav({
   );
 
   const navigateToPlatform = useCallback((platformId: PlatformId) => {
-    const openPlatform = () => {
-      setAntigravityRuntimeTargetFromPlatform(platformId);
-      setPage(PLATFORM_PAGE_MAP[platformId]);
-    };
-    const handled = ensurePlatformInstalledAndOpen(platformId, openPlatform);
-    if (!handled) {
-      setPage('dashboard');
-      return;
-    }
-  }, [ensurePlatformInstalledAndOpen, setPage]);
+    setAntigravityRuntimeTargetFromPlatform(platformId);
+    setPage(PLATFORM_PAGE_MAP[platformId]);
+  }, [setPage]);
 
   const navigateToEntry = useCallback((entry: SideNavEntry) => {
     if (entry.kind === 'api-relay') {
@@ -792,28 +783,29 @@ export function SideNav({
             : isClassicLayout
               ? currentEntryId === entry.id
               : !!currentPlatformId && entry.platformIds.includes(currentPlatformId);
-          const entryInstallRequired = !!entry.targetPlatformId
-            && isPackageInstallRequired(entry.targetPlatformId);
+          const entryPackageStatus = entry.targetPlatformId
+            ? getPackageEntryStatus(entry.targetPlatformId)
+            : null;
           const showGroupParent =
             !entry.group || !sidebarMenuEntryIdSet.has(entry.id);
           return (
             <div className="side-nav-more-group" key={entry.id}>
               {(isClassicLayout || showGroupParent) && (
                 <button
-                  className={`side-nav-more-item ${active ? 'active' : ''} ${entryInstallRequired ? 'is-package-install-required' : ''}`}
+                  className={`side-nav-more-item ${active ? 'active' : ''} ${entryPackageStatus ? `is-package-install-required is-package-status-${entryPackageStatus.tone}` : ''}`}
                   onClick={() => {
                     navigateToEntry(entry);
                     setShowMore(false);
                   }}
-                  title={entryInstallRequired
-                    ? `${entry.label} · ${t('platformLayout.packageInstallRequired', '未安装')}`
+                  title={entryPackageStatus
+                    ? `${entry.label} · ${entryPackageStatus.label}`
                     : entry.label}
                 >
                   <span className="side-nav-more-item-icon">{renderEntryIcon(entry, 16)}</span>
                   <span className="side-nav-more-item-label">{entry.label}</span>
-                  {entryInstallRequired && (
+                  {entryPackageStatus && (
                     <span className="side-nav-more-item-badge">
-                      {t('platformLayout.packageInstallRequired', '未安装')}
+                      {entryPackageStatus.label}
                     </span>
                   )}
                   {entry.hidden && (
@@ -833,19 +825,19 @@ export function SideNav({
                       platformId,
                       getPlatformLabel(platformId, t),
                     );
-                    const childInstallRequired = isPackageInstallRequired(platformId);
+                    const childPackageStatus = getPackageEntryStatus(platformId);
                     return (
                       <button
                         key={`${entry.id}:${platformId}`}
                         className={`${
                           showGroupParent ? 'side-nav-more-sub-item' : 'side-nav-more-item'
-                        } ${currentPlatformId === platformId ? 'active' : ''} ${childInstallRequired ? 'is-package-install-required' : ''}`}
+                        } ${currentPlatformId === platformId ? 'active' : ''} ${childPackageStatus ? `is-package-install-required is-package-status-${childPackageStatus.tone}` : ''}`}
                         onClick={() => {
                           navigateToPlatform(platformId);
                           setShowMore(false);
                         }}
-                        title={childInstallRequired
-                          ? `${label} · ${t('platformLayout.packageInstallRequired', '未安装')}`
+                        title={childPackageStatus
+                          ? `${label} · ${childPackageStatus.label}`
                           : label}
                       >
                         <span className={showGroupParent ? 'side-nav-more-sub-item-icon' : 'side-nav-more-item-icon'}>
@@ -863,9 +855,9 @@ export function SideNav({
                         <span className={showGroupParent ? 'side-nav-more-sub-item-label' : 'side-nav-more-item-label'}>
                           {label}
                         </span>
-                        {childInstallRequired && !showGroupParent && (
+                        {childPackageStatus && !showGroupParent && (
                           <span className="side-nav-more-item-badge">
-                            {t('platformLayout.packageInstallRequired', '未安装')}
+                            {childPackageStatus.label}
                           </span>
                         )}
                       </button>
@@ -1000,35 +992,36 @@ export function SideNav({
 
         {sidebarMenuEntries.map((entry) => {
           const active = currentEntryId === entry.id && !shouldLockActiveOnMore;
-          const entryInstallRequired = !!entry.targetPlatformId
-            && isPackageInstallRequired(entry.targetPlatformId);
+          const entryPackageStatus = entry.targetPlatformId
+            ? getPackageEntryStatus(entry.targetPlatformId)
+            : null;
           return (
             <button
               key={entry.id}
-              className={`nav-item ${active ? 'active' : ''} ${entryInstallRequired ? 'is-package-install-required' : ''}`}
+              className={`nav-item ${active ? 'active' : ''} ${entryPackageStatus ? `is-package-install-required is-package-status-${entryPackageStatus.tone}` : ''}`}
               onClick={() => navigateToEntry(entry)}
-              title={entryInstallRequired
-                ? `${entry.label} · ${t('platformLayout.packageInstallRequired', '未安装')}`
+              title={entryPackageStatus
+                ? `${entry.label} · ${entryPackageStatus.label}`
                 : entry.label}
             >
               {renderEntryIcon(entry, isClassicLayout ? classicMainIconSize : 20)}
               {showClassicLabels ? (
                 <span className="nav-item-text">
                   <span className="nav-item-label-text">{entry.label}</span>
-                  {entryInstallRequired && (
+                  {entryPackageStatus && (
                     <span className="nav-item-status-text">
-                      {t('platformLayout.packageInstallRequired', '未安装')}
+                      {entryPackageStatus.label}
                     </span>
                   )}
                 </span>
               ) : null}
-              {entryInstallRequired && !showClassicLabels && (
+              {entryPackageStatus && !showClassicLabels && (
                 <span className="nav-item-status-dot" aria-hidden="true" />
               )}
               {!isClassicLayout ? (
                 <span className="tooltip">
-                  {entryInstallRequired
-                    ? `${entry.label} · ${t('platformLayout.packageInstallRequired', '未安装')}`
+                  {entryPackageStatus
+                    ? `${entry.label} · ${entryPackageStatus.label}`
                     : entry.label}
                 </span>
               ) : null}

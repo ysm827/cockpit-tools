@@ -620,7 +620,7 @@ pub struct CodexLocalAccessStats {
     pub events: Vec<CodexLocalAccessUsageEvent>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessUsageEventPage {
     pub events: Vec<CodexLocalAccessUsageEvent>,
@@ -630,7 +630,7 @@ pub struct CodexLocalAccessUsageEventPage {
     pub total_pages: u32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessAccountCooldown {
     pub model_id: String,
@@ -639,7 +639,7 @@ pub struct CodexLocalAccessAccountCooldown {
     pub reason: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessAccountHealth {
     pub account_id: String,
@@ -656,7 +656,7 @@ pub struct CodexLocalAccessAccountHealth {
     pub cooldowns: Vec<CodexLocalAccessAccountCooldown>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessProfileAttachment {
     pub profile_dir: String,
@@ -669,7 +669,7 @@ pub struct CodexLocalAccessProfileAttachment {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessState {
     pub collection: Option<CodexLocalAccessCollection>,
@@ -686,7 +686,7 @@ pub struct CodexLocalAccessState {
     pub account_health: Vec<CodexLocalAccessAccountHealth>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessTestFailure {
     pub title: String,
@@ -699,7 +699,7 @@ pub struct CodexLocalAccessTestFailure {
     pub gateway_output: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessTestResult {
     pub model_id: Option<String>,
@@ -715,7 +715,7 @@ pub struct CodexLocalAccessChatMessage {
     pub content: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessChatResult {
     pub model_id: String,
@@ -724,7 +724,7 @@ pub struct CodexLocalAccessChatResult {
     pub failure: Option<CodexLocalAccessTestFailure>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLocalAccessPortCleanupResult {
     pub killed_count: u32,

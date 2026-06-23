@@ -27,8 +27,16 @@ export interface PlatformPackageState {
   errorMessage?: string | null;
   entry?: string | null;
   adapter?: PlatformPackageAdapter | null;
+  ui?: PlatformPackageUi | null;
   capabilities: string[];
   contributions: PlatformPackageContributions;
+  changelog: PlatformPackageChangelogEntry[];
+}
+
+export interface PlatformPackageChangelogEntry {
+  version: string;
+  date?: string | null;
+  notes: string[];
 }
 
 export interface PlatformPackageAdapter {
@@ -38,6 +46,25 @@ export interface PlatformPackageAdapter {
   windowsEntry?: string | null;
   linuxEntry?: string | null;
   methods: string[];
+}
+
+export interface PlatformPackageUi {
+  protocol: string;
+  entry: string;
+  style?: string | null;
+  exports?: string[];
+  sandbox?: string | null;
+}
+
+export interface PlatformPackageUiEntry {
+  platformId: PlatformId;
+  version: string;
+  protocol: string;
+  entry: string;
+  exports: string[];
+  sandbox?: string | null;
+  source: string;
+  style?: string | null;
 }
 
 export interface PlatformPackagePlatformContribution {

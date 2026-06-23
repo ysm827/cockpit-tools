@@ -1199,7 +1199,7 @@ fn average_quota_percentage(metrics: &[(String, i32)]) -> f64 {
     sum as f64 / metrics.len() as f64
 }
 
-pub(crate) fn resolve_current_account_id(accounts: &[KiroAccount]) -> Option<String> {
+pub fn resolve_current_account_id(accounts: &[KiroAccount]) -> Option<String> {
     if let Ok(local_payload) = crate::modules::kiro_oauth::build_payload_from_local_files() {
         let incoming_user_id = normalize_user_identity(local_payload.user_id.as_deref());
         let incoming_email = normalize_email_identity(Some(local_payload.email.as_str()));

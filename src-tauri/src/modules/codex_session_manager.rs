@@ -25,7 +25,7 @@ static TOKEN_STATS_CACHE: LazyLock<Mutex<HashMap<PathBuf, TokenStatsCacheEntry>>
 static CONTENT_SEARCH_CACHE: LazyLock<Mutex<HashMap<ContentSearchCacheKey, bool>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionLocation {
     pub instance_id: String,
@@ -33,7 +33,7 @@ pub struct CodexSessionLocation {
     pub running: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionRecord {
     pub session_id: String,
@@ -44,7 +44,7 @@ pub struct CodexSessionRecord {
     pub locations: Vec<CodexSessionLocation>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionTokenStats {
     pub session_id: String,
@@ -53,7 +53,7 @@ pub struct CodexSessionTokenStats {
     pub total_tokens: u64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionTrashSummary {
     pub requested_session_count: usize,
@@ -63,14 +63,14 @@ pub struct CodexSessionTrashSummary {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexTrashedSessionLocation {
     pub instance_id: String,
     pub instance_name: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexTrashedSessionRecord {
     pub session_id: String,
@@ -81,7 +81,7 @@ pub struct CodexTrashedSessionRecord {
     pub locations: Vec<CodexTrashedSessionLocation>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionRestoreSummary {
     pub requested_session_count: usize,

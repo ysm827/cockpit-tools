@@ -1251,7 +1251,7 @@ fn average_quota_percentage(metrics: &[(String, i32)]) -> f64 {
     sum as f64 / metrics.len() as f64
 }
 
-pub(crate) fn resolve_current_account_id(accounts: &[WindsurfAccount]) -> Option<String> {
+pub fn resolve_current_account_id(accounts: &[WindsurfAccount]) -> Option<String> {
     if let Ok(Some(local_auth_status)) = read_local_auth_status() {
         let local_api_key =
             pick_string_from_object(Some(&local_auth_status), &["apiKey", "api_key"])

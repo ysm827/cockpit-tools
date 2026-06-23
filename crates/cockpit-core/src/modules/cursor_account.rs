@@ -1864,7 +1864,7 @@ fn normalize_quota_alert_threshold(value: i32) -> i32 {
     value.clamp(0, 100)
 }
 
-pub(crate) fn resolve_current_account_id(accounts: &[CursorAccount]) -> Option<String> {
+pub fn resolve_current_account_id(accounts: &[CursorAccount]) -> Option<String> {
     if let Ok(Some(local_payload)) = read_local_cursor_auth() {
         let incoming_auth_id = resolve_payload_auth_id(&local_payload);
         let incoming_email = normalize_email_identity(Some(local_payload.email.as_str()));

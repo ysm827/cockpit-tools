@@ -10,6 +10,8 @@ lerna-debug.log*
 
 node_modules
 dist
+!platform-packages/dist/
+!platform-packages/dist/*.zip
 dist-ssr
 *.local
 .gemini
@@ -31,7 +33,6 @@ AGENTS.md
 
 locale-check-report.md
 
-docs/platform-integration-guide.md
 docs/plugin-architecture-design.md
 
 # Runtime caches

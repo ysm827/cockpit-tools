@@ -97,7 +97,11 @@ fn append_http_error_diagnostics(message: &mut String, headers: &HeaderMap, body
 fn extract_referral_error_detail(body: &str) -> Option<String> {
     let value: serde_json::Value = serde_json::from_str(body).ok()?;
     let detail = value.get("detail")?;
-    if let Some(message) = detail.as_str().map(str::trim).filter(|item| !item.is_empty()) {
+    if let Some(message) = detail
+        .as_str()
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+    {
         return Some(message.to_string());
     }
 
@@ -217,7 +221,7 @@ struct UsageResponse {
     rate_limit_reset_credits: Option<ResetCreditsInfo>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexResetCreditsSnapshot {
     available_count: Option<i64>,
     credits: Vec<CodexResetCredit>,
@@ -1556,7 +1560,11 @@ async fn fetch_referral_invite_eligibility_once(
     ));
 
     if !status.is_success() {
-        return Err(build_referral_http_error("查询 Codex 邀请资格", status, &body));
+        return Err(build_referral_http_error(
+            "查询 Codex 邀请资格",
+            status,
+            &body,
+        ));
     }
 
     let payload: serde_json::Value =
@@ -1618,7 +1626,11 @@ async fn fetch_referral_eligibility_rules_once(
     ));
 
     if !status.is_success() {
-        return Err(build_referral_http_error("查询 Codex 邀请规则", status, &body));
+        return Err(build_referral_http_error(
+            "查询 Codex 邀请规则",
+            status,
+            &body,
+        ));
     }
 
     let payload: serde_json::Value =

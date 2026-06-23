@@ -4113,7 +4113,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               <button
                 className="modal-close"
                 onClick={() => {
-                  if (deleting) return
                   setDeleteConfirm(null)
                   setDeleteConfirmError(null)
                 }}
@@ -4133,7 +4132,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                   setDeleteConfirm(null)
                   setDeleteConfirmError(null)
                 }}
-                disabled={deleting}
               >
                 {t('common.cancel')}
               </button>
@@ -4159,7 +4157,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               <button
                 className="modal-close"
                 onClick={() => {
-                  if (deletingGroup) return
                   setGroupDeleteConfirm(null)
                   setGroupDeleteError(null)
                 }}
@@ -4183,7 +4180,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                   setGroupDeleteConfirm(null)
                   setGroupDeleteError(null)
                 }}
-                disabled={deletingGroup}
               >
                 {t('common.cancel')}
               </button>
@@ -4209,7 +4205,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               <button
                 className="modal-close"
                 onClick={() => {
-                  if (deletingTag) return
                   setTagDeleteConfirm(null)
                   setTagDeleteConfirmError(null)
                 }}
@@ -4235,7 +4230,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                   setTagDeleteConfirm(null)
                   setTagDeleteConfirmError(null)
                 }}
-                disabled={deletingTag}
               >
                 {t('common.cancel')}
               </button>

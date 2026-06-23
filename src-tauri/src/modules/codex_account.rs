@@ -5191,25 +5191,25 @@ pub fn export_accounts(account_ids: &[String]) -> Result<String, String> {
     serde_json::to_string_pretty(&accounts).map_err(|e| format!("序列化失败: {}", e))
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct CodexFileImportResult {
     pub imported: Vec<CodexAccount>,
     pub failed: Vec<CodexFileImportFailure>,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct CodexFileImportFailure {
     pub email: String,
     pub error: String,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportStartResult {
     pub session_id: String,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportItem {
     pub item_id: String,
@@ -5228,7 +5228,7 @@ pub struct CodexBatchImportItem {
     pub existing: bool,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportProgress {
     pub session_id: String,
@@ -5243,7 +5243,7 @@ pub struct CodexBatchImportProgress {
     pub current_label: Option<String>,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportPreview {
     pub session_id: String,
@@ -5253,7 +5253,7 @@ pub struct CodexBatchImportPreview {
     pub items: Vec<CodexBatchImportItem>,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexBatchImportConfirmResult {
     pub imported: Vec<CodexAccount>,
