@@ -7,6 +7,7 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const INDEX_PATH = path.join(ROOT, 'platform-packages', 'index.json');
+const INDEX_SEED_PATH = path.join(ROOT, 'platform-packages', 'index.seed.json');
 const DEFAULT_DIST_DIR = path.join(ROOT, 'platform-packages', 'dist');
 
 function fail(message) {
@@ -282,7 +283,9 @@ function updateIndex(index, platformId, os, arch, metadata, manifest) {
     pkg.downloadSizeBytes = artifact.downloadSizeBytes;
     pkg.sha256 = artifact.sha256;
   }
-  fs.writeFileSync(INDEX_PATH, `${JSON.stringify(index, null, 2)}\n`);
+  const content = `${JSON.stringify(index, null, 2)}\n`;
+  fs.writeFileSync(INDEX_PATH, content);
+  fs.writeFileSync(INDEX_SEED_PATH, content);
 }
 
 function main() {

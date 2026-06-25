@@ -9,12 +9,14 @@ const ROOT = path.resolve(__dirname, '..');
 const PACKAGE_JSON_PATH = path.join(ROOT, 'package.json');
 const CARGO_TOML_PATH = path.join(ROOT, 'Cargo.toml');
 const INDEX_PATH = path.join(ROOT, 'platform-packages', 'index.json');
+const INDEX_SEED_PATH = path.join(ROOT, 'platform-packages', 'index.seed.json');
 const DIST_DIR = path.join(ROOT, 'platform-packages', 'dist');
 const PLATFORM_UI_DIR = path.join(ROOT, 'src', 'platform-ui');
 const BUILD_PLATFORM_UI_SCRIPT_PATH = path.join(ROOT, 'scripts', 'build-platform-ui.cjs');
 const PACKAGE_PLATFORM_SCRIPT_PATH = path.join(ROOT, 'scripts', 'package-platform-package.cjs');
 const PACKAGE_INDEX_SCRIPT_PATH = path.join(ROOT, 'scripts', 'build-platform-package-index.cjs');
 const PLATFORM_PACKAGES_WORKFLOW_PATH = path.join(ROOT, '.github', 'workflows', 'platform-packages.yml');
+const BUILD_MATRIX_WORKFLOW_PATH = path.join(ROOT, '.github', 'workflows', 'build-matrix.yml');
 const STORE_PATH = path.join(ROOT, 'src', 'stores', 'usePlatformPackageStore.ts');
 const PAGES_DIR = path.join(ROOT, 'src', 'pages');
 const TOOLBAR_PATH = path.join(ROOT, 'src', 'components', 'PlatformPackageToolbar.tsx');
@@ -35,6 +37,11 @@ const WEB_REPORT_PATH = path.join(ROOT, 'src-tauri', 'src', 'modules', 'web_repo
 const PROVIDER_CURRENT_PATH = path.join(ROOT, 'src-tauri', 'src', 'commands', 'provider_current.rs');
 const TAURI_SRC_DIR = path.join(ROOT, 'src-tauri', 'src');
 const TAURI_MODULES_MOD_PATH = path.join(ROOT, 'src-tauri', 'src', 'modules', 'mod.rs');
+const TAURI_CONFIG_PATH = path.join(ROOT, 'src-tauri', 'tauri.conf.json');
+const TAURI_CONFIG_OVERRIDE_PATHS = [
+  path.join(ROOT, 'src-tauri', 'tauri.dev.conf.json'),
+  path.join(ROOT, 'src-tauri', 'tauri.test.conf.json'),
+];
 
 const EXPECTED_PLATFORM_PACKAGES = new Map([
   ['antigravity', 'sidecarAdapter'],
@@ -970,6 +977,49 @@ function verifyPackagingTooling() {
     '--verify-zip-dir',
   ]) {
     assertIncludes(relative(PLATFORM_PACKAGES_WORKFLOW_PATH), workflow, expected);
+  }
+
+  const buildMatrixWorkflow = readText(BUILD_MATRIX_WORKFLOW_PATH, relative(BUILD_MATRIX_WORKFLOW_PATH));
+  for (const expected of ["'.dmg'", "'.app.tar.gz'", 'Publish Test Release']) {
+    assertIncludes(relative(BUILD_MATRIX_WORKFLOW_PATH), buildMatrixWorkflow, expected);
+  }
+
+  const index = readJson(INDEX_PATH, relative(INDEX_PATH));
+  const seedIndex = readJson(INDEX_SEED_PATH, relative(INDEX_SEED_PATH));
+  if (!seedIndex) {
+    fail(`missing ${relative(INDEX_SEED_PATH)}`);
+  }
+  assertSetEqual(
+    'platform-packages/index.seed.json vs platform-packages/index.json',
+    new Set((seedIndex.packages || []).map((pkg) => pkg.id)),
+    new Set((index.packages || []).map((pkg) => pkg.id)),
+  );
+
+  const tauriConfig = readJson(TAURI_CONFIG_PATH, relative(TAURI_CONFIG_PATH));
+  const resources = tauriConfig?.bundle?.resources ?? {};
+  assertEqual(
+    'tauri.conf platform package seed resource',
+    resources['../platform-packages/index.seed.json'],
+    'platform-packages/index.seed.json',
+  );
+  if (resources['../platform-packages'] === 'platform-packages') {
+    fail('src-tauri/tauri.conf.json must not bundle the full platform-packages directory');
+  }
+  if (resources['../platform-packages/dist'] === 'platform-packages/dist') {
+    fail('src-tauri/tauri.conf.json must not bundle platform-packages/dist');
+  }
+  for (const configPath of TAURI_CONFIG_OVERRIDE_PATHS) {
+    if (!fs.existsSync(configPath)) {
+      continue;
+    }
+    const overrideConfig = readJson(configPath, relative(configPath));
+    const overrideResources = overrideConfig?.bundle?.resources ?? {};
+    if (overrideResources['../platform-packages'] === 'platform-packages') {
+      fail(`${relative(configPath)} must not bundle the full platform-packages directory`);
+    }
+    if (overrideResources['../platform-packages/dist'] === 'platform-packages/dist') {
+      fail(`${relative(configPath)} must not bundle platform-packages/dist`);
+    }
   }
 }
 

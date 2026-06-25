@@ -17,6 +17,7 @@ const PLATFORM_PACKAGE_REGISTRY_FILE: &str = "platform_packages.json";
 const PLATFORM_PACKAGE_INDEX_CACHE_FILE: &str = "platform_package_index_cache.json";
 const PLATFORM_PACKAGE_INDEX_LOCAL_OVERRIDE_FILE: &str = "platform-package-index.local.json";
 const PLATFORM_PACKAGE_DIR: &str = "platform-packages";
+const PLATFORM_PACKAGE_INDEX_SEED_FILE: &str = "index.seed.json";
 const MANIFEST_FILE: &str = "manifest.json";
 const CURRENT_DIR: &str = "current";
 const DOWNLOADS_DIR: &str = "downloads";
@@ -926,8 +927,9 @@ pub fn installed_platform_adapter(platform_id: &str) -> Result<InstalledPlatform
 fn source_package_dir_candidates(app: &AppHandle, platform_id: &str) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
 
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        candidates.push(resource_dir.join(PLATFORM_PACKAGE_DIR).join(platform_id));
+    let _ = app;
+    if !cfg!(debug_assertions) {
+        return candidates;
     }
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -1027,6 +1029,43 @@ fn load_local_remote_index() -> Result<Option<PlatformPackageRemoteIndex>, Strin
     Ok(None)
 }
 
+fn bundled_seed_index_candidates(app: &AppHandle) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        candidates.push(
+            resource_dir
+                .join(PLATFORM_PACKAGE_DIR)
+                .join(PLATFORM_PACKAGE_INDEX_SEED_FILE),
+        );
+    }
+
+    if cfg!(debug_assertions) {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        if let Some(repo_root) = manifest_dir.parent() {
+            candidates.push(
+                repo_root
+                    .join(PLATFORM_PACKAGE_DIR)
+                    .join(PLATFORM_PACKAGE_INDEX_SEED_FILE),
+            );
+        }
+    }
+
+    candidates
+}
+
+fn load_bundled_seed_index(app: &AppHandle) -> Result<Option<PlatformPackageRemoteIndex>, String> {
+    for candidate in bundled_seed_index_candidates(app) {
+        if candidate.exists() {
+            logger::log_info(&format!(
+                "[PlatformPackage] 使用内置平台包 seed 索引: {}",
+                candidate.display()
+            ));
+            return parse_remote_index_file(&candidate).map(Some);
+        }
+    }
+    Ok(None)
+}
+
 fn read_index_cache() -> Result<Option<PlatformPackageIndexCache>, String> {
     let path = index_cache_path()?;
     if !path.exists() {
@@ -1085,7 +1124,10 @@ fn fetch_remote_index() -> Result<PlatformPackageRemoteIndex, String> {
         .map_err(|err| format!("解析平台包索引响应失败: {}", err))
 }
 
-fn load_remote_index(force_refresh: bool) -> Result<Option<PlatformPackageRemoteIndex>, String> {
+fn load_remote_index(
+    app: &AppHandle,
+    force_refresh: bool,
+) -> Result<Option<PlatformPackageRemoteIndex>, String> {
     if let Some(index) = load_local_remote_index()? {
         return Ok(Some(index));
     }
@@ -1112,10 +1154,13 @@ fn load_remote_index(force_refresh: bool) -> Result<Option<PlatformPackageRemote
         }
         Err(error) => {
             logger::log_warn(&format!(
-                "[PlatformPackage] 拉取远端平台包索引失败，尝试使用缓存或内置包: {}",
+                "[PlatformPackage] 拉取远端平台包索引失败，尝试使用缓存或内置 seed: {}",
                 error
             ));
-            read_index_cache().map(|cache| cache.map(|item| item.data))
+            if let Some(cache) = read_index_cache()? {
+                return Ok(Some(cache.data));
+            }
+            load_bundled_seed_index(app)
         }
     }
 }
@@ -1248,8 +1293,12 @@ fn manifest_from_remote_package(
     Ok(manifest)
 }
 
-fn read_remote_source(platform_id: &str, force_refresh: bool) -> Option<PlatformPackageSource> {
-    let index = match load_remote_index(force_refresh) {
+fn read_remote_source(
+    app: &AppHandle,
+    platform_id: &str,
+    force_refresh: bool,
+) -> Option<PlatformPackageSource> {
+    let index = match load_remote_index(app, force_refresh) {
         Ok(Some(index)) => index,
         Ok(None) => return None,
         Err(error) => {
@@ -1303,7 +1352,7 @@ fn resolve_package_source(
     force_remote_refresh: bool,
 ) -> Result<PlatformPackageSource, String> {
     ensure_supported_platform(platform_id)?;
-    let remote = read_remote_source(platform_id, force_remote_refresh);
+    let remote = read_remote_source(app, platform_id, force_remote_refresh);
     let local = read_local_source(app, platform_id);
     pick_latest_source(remote, local).ok_or_else(|| format!("未找到平台包源: {}", platform_id))
 }
@@ -1789,6 +1838,9 @@ fn build_state(
 }
 
 fn resolve_source_size_from_current_process(platform_id: &str) -> Option<u64> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let repo_root = manifest_dir.parent()?;
     let source_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(platform_id);
@@ -1796,6 +1848,9 @@ fn resolve_source_size_from_current_process(platform_id: &str) -> Option<u64> {
 }
 
 fn local_source_package_dir_from_current_process(platform_id: &str) -> Option<PathBuf> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let repo_root = manifest_dir.parent()?;
     let source_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(platform_id);

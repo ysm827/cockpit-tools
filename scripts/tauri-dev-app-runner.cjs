@@ -211,7 +211,13 @@ function prepareAppBundle(binaryPath) {
   }
 
   const debugDir = path.dirname(binaryPath);
-  symlinkOrCopy(path.join(repoRoot, 'platform-packages'), path.join(resourcesDir, 'platform-packages'));
+  const platformPackageResourceDir = path.join(resourcesDir, 'platform-packages');
+  removeExisting(platformPackageResourceDir);
+  fs.mkdirSync(platformPackageResourceDir, { recursive: true });
+  symlinkOrCopy(
+    path.join(repoRoot, 'platform-packages', 'index.seed.json'),
+    path.join(platformPackageResourceDir, 'index.seed.json'),
+  );
   symlinkOrCopy(path.join(debugDir, 'native-menu-icons'), path.join(resourcesDir, 'native-menu-icons'));
   symlinkOrCopy(path.join(debugDir, 'scripts'), path.join(resourcesDir, 'scripts'));
   symlinkOrCopy(path.join(debugDir, 'cockpit-cliproxy'), path.join(macosDir, 'cockpit-cliproxy'));

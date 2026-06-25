@@ -253,6 +253,21 @@ npm run package:platform-index -- --metadata-dir platform-packages/dist-ci --ver
 8. 需要连续测试多个桌面端版本时，使用 `test_version` 输入临时覆盖测试构建版本；为兼容 Windows MSI，测试版本的 prerelease 标识必须是纯数字且单段不超过 `65535`，例如 `1.0.1-1001`、`1.0.1-1002`。该覆盖只允许用于测试通道，不得写入正式版本号或正式更新日志。
 9. Tauri updater 真机更新依赖签名产物；测试 release 必须使用与 `tauri.test.conf.json` 中 `pubkey` 匹配的签名密钥生成 artifacts。
 10. GitHub Actions artifacts 可用于手动下载 Windows/macOS/Linux 测试包；真实 updater 验证必须使用 `test-latest` prerelease 上的 `latest-test.json` 与对应签名资产。
+11. macOS 测试 release 应上传 `.dmg` 供人工安装测试；Tauri updater 仍使用签名的 `.app.tar.gz` 和 `.sig`，不要把 `.dmg` 当作 updater 输入。
+
+### 5.3 主应用内置资源边界
+
+主应用安装包必须保持轻量，禁止把完整平台业务包当作 Tauri resource 内置：
+
+1. `src-tauri/tauri.conf.json` 的 `bundle.resources` 只能内置轻量 `../platform-packages/index.seed.json` 到 `platform-packages/index.seed.json`，以及平台图标、通用脚本、Host API 所需的 Core Shell 资源。
+2. 禁止内置完整 `../platform-packages` 目录，禁止内置 `../platform-packages/dist`，也禁止把任意平台的 `ui/remoteEntry.js`、`ui/style.css`、adapter、helper/二级 sidecar 展开目录打进主应用安装包。
+3. `index.seed.json` 只用于远端 index 拉取失败且本地没有缓存时展示平台元信息、包大小、更新日志和安装入口；它不是业务 runtime，不得从 seed 里加载 remote UI 或 adapter。
+4. 已安装平台只能从用户数据目录里的本地平台包 `current` 目录加载业务 UI 和 adapter；未安装平台只能显示通用不可用页和平台包操作入口。
+5. 首次使用平台业务能力必须通过远端 index 下载当前 `os + arch` 匹配的 zip，校验大小和 `sha256` 后安装到用户数据目录。
+6. `scripts/package-platform-package.cjs --update-index` 必须同时更新 `platform-packages/index.json` 和 `platform-packages/index.seed.json`，保证 seed 与本地开发索引的平台集合一致。
+7. `npm run verify:platform-packages` 必须检查 seed 存在、seed 与 index 的平台集合一致、Tauri 主配置只内置 seed，并拦截正式、dev、test 配置重新内置完整 `platform-packages` 或 `platform-packages/dist`。
+8. debug/dev 模式可以从仓库 `platform-packages/<platformId>` 读取本地 source 包以方便开发和修复旧 dev 安装包；release/test 安装包不得依赖仓库 source 包，也不得用 resource 目录中的展开平台包作为安装源。
+9. 如果担心首次打开体验，只能内置平台展示所需的轻量 contribution/seed 和通用未安装页；不能为了“开箱即用”重新内置全平台、全 zip 或全系统 artifact。
 
 ## 6. 安装、更新、卸载流程
 

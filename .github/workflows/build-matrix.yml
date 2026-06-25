@@ -313,6 +313,7 @@ jobs:
             '.rpm',
             '.msi',
             '.exe',
+            '.dmg',
             '.app.tar.gz',
           ];
           const macArchByArtifact = new Map([

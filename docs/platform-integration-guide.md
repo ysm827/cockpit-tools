@@ -134,6 +134,21 @@ Core Shell + Platform Package + Remote React UI + Sidecar Adapter + runtimeReady
 6. 连续验证升级提示时，只允许通过 `test_version` 临时生成测试版本；为兼容 Windows MSI，测试版本 prerelease 标识必须是纯数字且单段不超过 `65535`，例如 `1.0.1-1001`、`1.0.1-1002`。禁止把测试版本写进正式 `package.json`、正式 `CHANGELOG` 或正式 release tag。
 7. 测试通道可以复用正式签名密钥，但必须保持 endpoint 隔离；正式 `latest.json` 和正式 `platform-packages/index.json` 不得引用 test channel artifact。
 8. 后续新平台迁移完成后，必须先通过 test channel 验证 Windows/macOS/Linux 对应 artifact 的安装、卸载、检查更新、更新弹框、更新日志和包大小，再考虑进入正式通道。
+9. macOS 测试 release 必须上传 `.dmg` 供人工下载安装；真实 updater 仍使用 `.app.tar.gz` 与 `.sig`。
+
+### 5.2 主应用内置资源边界
+
+平台包按需安装是默认分发模型，主应用不得重新变成“全平台大包”：
+
+1. Tauri 主配置只能把 `../platform-packages/index.seed.json` 内置为 `platform-packages/index.seed.json`；dev/test 覆盖配置也不得重新映射完整 `../platform-packages`。
+2. 禁止把完整 `platform-packages`、`platform-packages/dist`、任意平台展开目录、remote UI、adapter、helper/二级 sidecar 或全系统 zip 内置进桌面端安装包。
+3. `index.seed.json` 只保存平台元信息兜底，用于远端 index 和缓存都不可用时展示入口、包大小、更新日志和安装操作；seed 不是平台业务包，不能作为 UI runtime 或 adapter 来源。
+4. 平台业务内容必须来自远端 index 下载后的用户数据目录安装包；已安装平台从 `current` 加载，未安装平台只能展示通用不可用页和平台包操作入口。
+5. 允许内置的内容仅限 Core Shell、Host API、平台生命周期、通用未安装页、平台图标/菜单图标、轻量 seed 和通用 helper 脚本；这些内容不能包含平台业务 UI 或平台业务 adapter。
+6. 使用 `scripts/package-platform-package.cjs --update-index` 时，必须同步写回 `platform-packages/index.json` 与 `platform-packages/index.seed.json`。
+7. `npm run verify:platform-packages` 必须检查 seed、Tauri resources 和打包脚本；任何配置重新内置完整平台包目录都必须失败。
+8. 本地 debug 可以从仓库 source 包安装，release/test 安装包不得依赖仓库 source 或 resource 展开包；远端测试必须通过测试 index 下载真实 zip 验证。
+9. 为缩小首包体积，只能选择“内置 seed + 按需下载平台包”。禁止内置全平台 starter 包；如未来需要 starter，也只能内置当前系统、极少数平台、且不包含全系统 artifact，并必须经过包体积评审。
 
 ## 6. 新平台迁移流程
 
