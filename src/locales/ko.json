@@ -2220,14 +2220,8 @@
       "addTask": "작업 추가",
       "testNow": "깨우기 테스트",
       "fullQuotaAction": "만액 계정 깨우기",
-      "fullQuotaActionTitle": "현재 목록의 계정을 하나씩 확인해 만액 계정을 자동 선택한 뒤 깨우기 테스트를 엽니다.",
-      "fullQuotaDetecting": "확인 중...",
-      "fullQuotaNoAccounts": "현재 목록에 확인할 수 있는 OAuth 계정이 없습니다.",
-      "fullQuotaDetectSuccess": "{{checked}}개 계정을 확인했고 만액 계정 {{selected}}개를 자동 선택했습니다.",
-      "fullQuotaDetectPartial": "{{checked}}개 계정을 확인했고 만액 계정 {{selected}}개를 자동 선택했으며 {{failed}}개는 새로 고침에 실패했습니다.",
-      "fullQuotaDetectEmpty": "확인이 완료되었습니다. 만액 깨우기 조건에 맞는 계정이 없습니다.",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}}개 계정을 확인했습니다. 만액 조건에 맞는 계정이 없고 {{failed}}개는 새로 고침에 실패했습니다.",
-      "fullQuotaDetectFailed": "만액 계정 확인 실패: {{error}}",
+      "fullQuotaActionTitle": "만액 계정 깨우기 테스트를 엽니다. 계정은 기본적으로 5h 한도가 높은 순으로 정렬됩니다.",
+      "fullQuotaNoAccounts": "현재 목록에 깨울 수 있는 OAuth 계정이 없습니다.",
       "enableAll": "모든 작업 켜기",
       "disableAll": "모든 작업 끄기",
       "refreshRuntime": "CLI 다시 확인",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "공식 직접 연결",
       "officialChatRuntimePath": "ChatGPT 공식 Codex 채팅",
       "officialChatRuntimeSource": "공식 직접 연결",
-      "officialChatRuntimeMessage": "OAuth 계정 직접 대화"
+      "officialChatRuntimeMessage": "OAuth 계정 직접 대화",
+      "fullQuotaTestTitle": "만액 계정 깨우기",
+      "fullQuotaAccountsLabel": "깨울 계정 선택",
+      "accountSort": {
+        "default": "기본 순서",
+        "hourly": "5h 한도순",
+        "weekly": "주간 한도순",
+        "email": "이메일순"
+      }
     },
     "sessionManager": {
       "title": "세션 관리",

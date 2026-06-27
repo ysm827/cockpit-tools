@@ -2390,14 +2390,8 @@
       "addTask": "Tambah tugas",
       "testNow": "Tes bangun",
       "fullQuotaAction": "Bangunkan akun penuh",
-      "fullQuotaActionTitle": "Periksa akun di daftar saat ini satu per satu, pilih otomatis akun berkuota penuh, lalu buka uji wakeup.",
-      "fullQuotaDetecting": "Memeriksa...",
-      "fullQuotaNoAccounts": "Tidak ada akun OAuth yang dapat diperiksa di daftar saat ini.",
-      "fullQuotaDetectSuccess": "{{checked}} akun diperiksa dan {{selected}} akun berkuota penuh dipilih otomatis.",
-      "fullQuotaDetectPartial": "{{checked}} akun diperiksa, {{selected}} akun berkuota penuh dipilih otomatis, dan {{failed}} gagal disegarkan.",
-      "fullQuotaDetectEmpty": "Pemeriksaan selesai. Tidak ada akun yang memenuhi kondisi wakeup kuota penuh.",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}} akun diperiksa. Tidak ada akun yang memenuhi kondisi kuota penuh, dan {{failed}} gagal disegarkan.",
-      "fullQuotaDetectFailed": "Gagal memeriksa akun berkuota penuh: {{error}}",
+      "fullQuotaActionTitle": "Buka uji wakeup akun berkuota penuh. Akun diurutkan default berdasarkan kuota 5h dari tinggi ke rendah.",
+      "fullQuotaNoAccounts": "Tidak ada akun OAuth yang dapat dibangunkan di daftar saat ini.",
       "enableAll": "Aktifkan semua tugas",
       "disableAll": "Nonaktifkan semua tugas",
       "refreshRuntime": "Periksa Ulang CLI",
@@ -2552,7 +2546,15 @@
       "officialChatRuntimeTitle": "Langsung resmi",
       "officialChatRuntimePath": "Chat Codex resmi ChatGPT",
       "officialChatRuntimeSource": "Langsung resmi",
-      "officialChatRuntimeMessage": "Chat langsung akun OAuth"
+      "officialChatRuntimeMessage": "Chat langsung akun OAuth",
+      "fullQuotaTestTitle": "Bangunkan akun penuh",
+      "fullQuotaAccountsLabel": "Pilih akun untuk dibangunkan",
+      "accountSort": {
+        "default": "Urutan default",
+        "hourly": "Menurut kuota 5h",
+        "weekly": "Menurut kuota mingguan",
+        "email": "Menurut email"
+      }
     },
     "sessionManager": {
       "title": "Manajer Sesi",

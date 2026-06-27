@@ -2220,14 +2220,8 @@
       "addTask": "Добавить задачу",
       "testNow": "Проверить пробуждение",
       "fullQuotaAction": "Разбудить полные аккаунты",
-      "fullQuotaActionTitle": "Проверяет текущий список аккаунтов по одному, предварительно выбирает аккаунты с полной квотой и открывает тест пробуждения.",
-      "fullQuotaDetecting": "Проверка...",
-      "fullQuotaNoAccounts": "В текущем списке нет проверяемых OAuth-аккаунтов.",
-      "fullQuotaDetectSuccess": "Проверено {{checked}} аккаунтов, предварительно выбрано {{selected}} аккаунтов с полной квотой.",
-      "fullQuotaDetectPartial": "Проверено {{checked}} аккаунтов, выбрано {{selected}} аккаунтов с полной квотой, {{failed}} не удалось обновить.",
-      "fullQuotaDetectEmpty": "Проверка завершена. Нет аккаунтов, подходящих под условие пробуждения с полной квотой.",
-      "fullQuotaDetectEmptyWithFailed": "Проверено {{checked}} аккаунтов. Подходящих аккаунтов нет, {{failed}} не удалось обновить.",
-      "fullQuotaDetectFailed": "Не удалось проверить аккаунты с полной квотой: {{error}}",
+      "fullQuotaActionTitle": "Открывает тест пробуждения аккаунтов с полной квотой. По умолчанию аккаунты сортируются по квоте 5h от большей к меньшей.",
+      "fullQuotaNoAccounts": "В текущем списке нет OAuth-аккаунтов, которые можно пробудить.",
       "enableAll": "Включить все задачи",
       "disableAll": "Выключить все задачи",
       "refreshRuntime": "Проверить CLI снова",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Официально напрямую",
       "officialChatRuntimePath": "Официальный чат Codex в ChatGPT",
       "officialChatRuntimeSource": "Официально напрямую",
-      "officialChatRuntimeMessage": "Прямой чат через OAuth-аккаунт"
+      "officialChatRuntimeMessage": "Прямой чат через OAuth-аккаунт",
+      "fullQuotaTestTitle": "Пробудить полные аккаунты",
+      "fullQuotaAccountsLabel": "Выберите аккаунты для пробуждения",
+      "accountSort": {
+        "default": "Порядок по умолчанию",
+        "hourly": "По квоте 5h",
+        "weekly": "По недельной квоте",
+        "email": "По e-mail"
+      }
     },
     "sessionManager": {
       "title": "Управление сессиями",

@@ -2220,14 +2220,8 @@
       "addTask": "Ajouter une tâche",
       "testNow": "Tester le réveil",
       "fullQuotaAction": "Réveiller comptes pleins",
-      "fullQuotaActionTitle": "Vérifie les comptes de la liste actuelle un par un, présélectionne ceux à quota plein, puis ouvre le test de réveil.",
-      "fullQuotaDetecting": "Vérification...",
-      "fullQuotaNoAccounts": "Aucun compte OAuth vérifiable dans la liste actuelle.",
-      "fullQuotaDetectSuccess": "{{checked}} compte(s) vérifié(s), {{selected}} compte(s) à quota plein présélectionné(s).",
-      "fullQuotaDetectPartial": "{{checked}} compte(s) vérifié(s), {{selected}} compte(s) à quota plein présélectionné(s), {{failed}} échec(s) d’actualisation.",
-      "fullQuotaDetectEmpty": "Vérification terminée. Aucun compte ne remplit la condition de réveil à quota plein.",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}} compte(s) vérifié(s). Aucun ne remplit la condition de quota plein, {{failed}} échec(s) d’actualisation.",
-      "fullQuotaDetectFailed": "Échec de la vérification des comptes à quota plein : {{error}}",
+      "fullQuotaActionTitle": "Ouvre le test de réveil des comptes à quota plein. Les comptes sont triés par défaut par quota 5h décroissant.",
+      "fullQuotaNoAccounts": "Aucun compte OAuth réveillable dans la liste actuelle.",
       "enableAll": "Activer toutes les tâches",
       "disableAll": "Désactiver toutes les tâches",
       "refreshRuntime": "Revérifier le CLI",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Direct officiel",
       "officialChatRuntimePath": "Chat Codex officiel de ChatGPT",
       "officialChatRuntimeSource": "Direct officiel",
-      "officialChatRuntimeMessage": "Chat direct avec compte OAuth"
+      "officialChatRuntimeMessage": "Chat direct avec compte OAuth",
+      "fullQuotaTestTitle": "Réveiller les comptes pleins",
+      "fullQuotaAccountsLabel": "Choisir les comptes à réveiller",
+      "accountSort": {
+        "default": "Ordre par défaut",
+        "hourly": "Par quota 5h",
+        "weekly": "Par quota hebdo",
+        "email": "Par e-mail"
+      }
     },
     "sessionManager": {
       "title": "Gestion des sessions",

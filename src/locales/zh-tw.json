@@ -2337,14 +2337,8 @@
       "addTask": "新增任務",
       "testNow": "測試喚醒",
       "fullQuotaAction": "喚醒滿額帳號",
-      "fullQuotaActionTitle": "逐一檢測目前列表帳號，自動勾選滿額帳號後開啟測試喚醒。",
-      "fullQuotaDetecting": "檢測中...",
-      "fullQuotaNoAccounts": "目前列表沒有可檢測的 OAuth 帳號。",
-      "fullQuotaDetectSuccess": "已檢測 {{checked}} 個帳號，自動勾選 {{selected}} 個滿額帳號。",
-      "fullQuotaDetectPartial": "已檢測 {{checked}} 個帳號，自動勾選 {{selected}} 個滿額帳號，{{failed}} 個重新整理失敗。",
-      "fullQuotaDetectEmpty": "檢測完成，沒有符合滿額喚醒條件的帳號。",
-      "fullQuotaDetectEmptyWithFailed": "已檢測 {{checked}} 個帳號，沒有符合滿額喚醒條件的帳號，{{failed}} 個重新整理失敗。",
-      "fullQuotaDetectFailed": "檢測滿額帳號失敗：{{error}}",
+      "fullQuotaActionTitle": "開啟滿額帳號喚醒測試，帳號預設依 5h 額度由高到低排序。",
+      "fullQuotaNoAccounts": "目前列表沒有可喚醒的 OAuth 帳號。",
       "enableAll": "啟用所有任務",
       "disableAll": "停用所有任務",
       "refreshRuntime": "重新檢查 CLI",
@@ -2506,7 +2500,15 @@
       "officialChatRuntimeTitle": "官方直連",
       "officialChatRuntimePath": "ChatGPT 官方 Codex 對話",
       "officialChatRuntimeSource": "官方直連",
-      "officialChatRuntimeMessage": "OAuth 帳號直接對話"
+      "officialChatRuntimeMessage": "OAuth 帳號直接對話",
+      "fullQuotaTestTitle": "喚醒滿額帳號",
+      "fullQuotaAccountsLabel": "選擇要喚醒的帳號",
+      "accountSort": {
+        "default": "預設順序",
+        "hourly": "依5h額度",
+        "weekly": "依週額度",
+        "email": "依信箱"
+      }
     },
     "sessionManager": {
       "title": "會話管理",

@@ -135,6 +135,50 @@ function removeExisting(target) {
   }
 }
 
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function listDevAppPids() {
+  const result = spawnSync('pgrep', ['-f', appExecutablePath], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  if (result.status !== 0 || !result.stdout) {
+    return [];
+  }
+  return result.stdout
+    .split(/\s+/u)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((pid) => Number.isInteger(pid) && pid > 0 && pid !== process.pid);
+}
+
+function isProcessAlive(pid) {
+  return spawnSync('kill', ['-0', String(pid)], { stdio: 'ignore' }).status === 0;
+}
+
+function terminateDevAppProcesses(reason) {
+  const pids = listDevAppPids();
+  if (pids.length === 0) {
+    return;
+  }
+  console.log(`[tauri-dev-app-runner] cleanup ${pids.length} stale dev app process(es): ${reason}`);
+  spawnSync('kill', ['-TERM', ...pids.map(String)], { stdio: 'ignore' });
+
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    if (pids.every((pid) => !isProcessAlive(pid))) {
+      return;
+    }
+    sleepMs(100);
+  }
+
+  const alivePids = pids.filter(isProcessAlive);
+  if (alivePids.length > 0) {
+    spawnSync('kill', ['-KILL', ...alivePids.map(String)], { stdio: 'ignore' });
+  }
+}
+
 function symlinkOrCopy(source, target) {
   if (!fs.existsSync(source)) {
     return;
@@ -233,6 +277,7 @@ if (!binaryPath) {
 const binaryArgIndex = args.findIndex((arg) => path.resolve(repoRoot, arg) === binaryPath);
 const appArgs = cargoRunTarget?.appArgs ?? (binaryArgIndex >= 0 ? args.slice(binaryArgIndex + 1) : []);
 
+terminateDevAppProcesses('before launch');
 prepareAppBundle(binaryPath);
 
 const child = spawn(appExecutablePath, appArgs, {
@@ -245,12 +290,17 @@ function forwardSignal(signal) {
   if (!child.killed) {
     child.kill(signal);
   }
+  setTimeout(() => {
+    terminateDevAppProcesses(`after ${signal}`);
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  }, 3000).unref();
 }
 
 process.on('SIGINT', () => forwardSignal('SIGINT'));
 process.on('SIGTERM', () => forwardSignal('SIGTERM'));
 
 child.on('exit', (code, signal) => {
+  terminateDevAppProcesses('after app exit');
   if (signal) {
     process.exit(1);
     return;

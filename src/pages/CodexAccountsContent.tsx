@@ -88,7 +88,6 @@ import {
   hasCodexAccountStructure,
   formatCodexLoginProvider,
   getCodexAuthMetadata,
-  getCodexEffectiveQuotaPercentages,
   getCodexPlanFilterKey,
   getCodexSubscriptionPresentation,
   hasCodexAccountName,
@@ -838,50 +837,6 @@ function normalizeHttpBaseUrl(value: string): string | null {
   }
 }
 
-const CODEX_FULL_QUOTA_WAKEUP_TOLERANCE_SECONDS = 10;
-const CODEX_DEFAULT_HOURLY_WINDOW_MINUTES = 5 * 60;
-
-function isCodexFullQuotaWakeupCandidate(
-  account: CodexAccount,
-  nowSeconds = Math.floor(Date.now() / 1000),
-): boolean {
-  if (isCodexApiKeyAccount(account)) return false;
-  const quota = account.quota;
-  if (!quota) return false;
-
-  const effectiveQuota = getCodexEffectiveQuotaPercentages(quota);
-  if (effectiveQuota.weekly == null || effectiveQuota.weekly <= 0) {
-    return false;
-  }
-  if (effectiveQuota.hourly == null) {
-    return false;
-  }
-  if (effectiveQuota.hourly >= 100) {
-    return true;
-  }
-  if (effectiveQuota.hourly < 99) {
-    return false;
-  }
-
-  const resetTime = quota.hourly_reset_time;
-  if (typeof resetTime !== "number" || !Number.isFinite(resetTime)) {
-    return false;
-  }
-  const windowMinutes =
-    typeof quota.hourly_window_minutes === "number" &&
-    Number.isFinite(quota.hourly_window_minutes) &&
-    quota.hourly_window_minutes > 0
-      ? quota.hourly_window_minutes
-      : CODEX_DEFAULT_HOURLY_WINDOW_MINUTES;
-  const expectedResetDelaySeconds = Math.round(windowMinutes * 60);
-  const resetDelaySeconds = resetTime - nowSeconds;
-
-  return (
-    Math.abs(resetDelaySeconds - expectedResetDelaySeconds) <=
-    CODEX_FULL_QUOTA_WAKEUP_TOLERANCE_SECONDS
-  );
-}
-
 function buildExportFileName(baseName: string): string {
   const date = new Date().toISOString().slice(0, 10);
   return `${baseName}_${date}.json`;
@@ -1014,8 +969,6 @@ export function CodexAccountsContent() {
   const fetchSponsorState = useSponsorStore((state) => state.fetchState);
   const [activeTab, setActiveTab] = useState<CodexTab>("overview");
   const [wakeupPresetManagerSignal, setWakeupPresetManagerSignal] = useState(0);
-  const [fullQuotaWakeupDetecting, setFullQuotaWakeupDetecting] =
-    useState(false);
   const [fullQuotaWakeupOpenRequest, setFullQuotaWakeupOpenRequest] =
     useState<CodexWakeupTestOpenRequest | null>(null);
   const fullQuotaWakeupOpenSignalRef = useRef(0);
@@ -8470,111 +8423,26 @@ export function CodexAccountsContent() {
       }),
     });
   }, [errorAccountIds, setDeleteConfirm, t]);
-  const handleDetectFullQuotaWakeupAccounts = useCallback(async () => {
-    if (fullQuotaWakeupDetecting) return;
-    const targetAccounts = filteredAccounts.filter(
-      (account) => !isCodexApiKeyAccount(account),
-    );
-
-    if (targetAccounts.length === 0) {
+  const openFullQuotaWakeupTestModal = useCallback(() => {
+    if (!hasDetectableFullQuotaWakeupAccounts) {
       setMessage({
         text: t(
           "codex.wakeup.fullQuotaNoAccounts",
-          "当前列表没有可检测的 OAuth 账号。",
+          "当前列表没有可唤醒的 OAuth 账号。",
         ),
         tone: "error",
       });
       return;
     }
-
-    setFullQuotaWakeupDetecting(true);
-    const selectedAccountIds: string[] = [];
-    let refreshFailedCount = 0;
-
-    try {
-      for (const account of targetAccounts) {
-        try {
-          const quota = await codexService.refreshCodexQuota(account.id);
-          if (
-            isCodexFullQuotaWakeupCandidate({
-              ...account,
-              quota,
-              quota_error: undefined,
-            })
-          ) {
-            selectedAccountIds.push(account.id);
-          }
-        } catch (error) {
-          refreshFailedCount += 1;
-          console.warn("[CodexWakeup] 满额账号检测刷新失败:", account.id, error);
-        }
-      }
-
-      await fetchAccounts();
-      await fetchCurrentAccount();
-
-      if (selectedAccountIds.length === 0) {
-        setMessage({
-          text:
-            refreshFailedCount > 0
-              ? t("codex.wakeup.fullQuotaDetectEmptyWithFailed", {
-                  checked: targetAccounts.length,
-                  failed: refreshFailedCount,
-                  defaultValue:
-                    "已检测 {{checked}} 个账号，没有符合满额唤醒条件的账号，{{failed}} 个刷新失败。",
-                })
-              : t(
-                  "codex.wakeup.fullQuotaDetectEmpty",
-                  "检测完成，没有符合满额唤醒条件的账号。",
-                ),
-          tone: "error",
-        });
-        return;
-      }
-
-      const notice =
-        refreshFailedCount > 0
-          ? t("codex.wakeup.fullQuotaDetectPartial", {
-              checked: targetAccounts.length,
-              selected: selectedAccountIds.length,
-              failed: refreshFailedCount,
-              defaultValue:
-                "已检测 {{checked}} 个账号，自动勾选 {{selected}} 个满额账号，{{failed}} 个刷新失败。",
-            })
-          : t("codex.wakeup.fullQuotaDetectSuccess", {
-              checked: targetAccounts.length,
-              selected: selectedAccountIds.length,
-              defaultValue:
-                "已检测 {{checked}} 个账号，自动勾选 {{selected}} 个满额账号。",
-            });
-
-      fullQuotaWakeupOpenSignalRef.current += 1;
-      setFullQuotaWakeupOpenRequest({
-        signal: fullQuotaWakeupOpenSignalRef.current,
-        accountIds: selectedAccountIds,
-        notice,
-      });
-      setActiveTab("wakeup");
-      setMessage({ text: notice });
-    } catch (error) {
-      setMessage({
-        text: t("codex.wakeup.fullQuotaDetectFailed", {
-          error: String(error).replace(/^Error:\s*/, ""),
-          defaultValue: "检测满额账号失败：{{error}}",
-        }),
-        tone: "error",
-      });
-    } finally {
-      setFullQuotaWakeupDetecting(false);
-    }
-  }, [
-    fetchAccounts,
-    fetchCurrentAccount,
-    filteredAccounts,
-    fullQuotaWakeupDetecting,
-    setMessage,
-    t,
-  ]);
+    fullQuotaWakeupOpenSignalRef.current += 1;
+    setFullQuotaWakeupOpenRequest({
+      signal: fullQuotaWakeupOpenSignalRef.current,
+      variant: "fullQuota",
+      defaultSortBy: "hourly",
+      defaultSortDirection: "desc",
+    });
+    setActiveTab("wakeup");
+  }, [hasDetectableFullQuotaWakeupAccounts, setMessage, t]);
   const exportSelectionCount = getScopedSelectedCount(filteredIds);
   const pagination = usePagination({
     items: filteredAccounts,
@@ -12575,31 +12443,16 @@ export function CodexAccountsContent() {
                     <button
                       type="button"
                       className="btn btn-secondary codex-overview-full-quota-wakeup-btn"
-                      onClick={() => void handleDetectFullQuotaWakeupAccounts()}
-                      disabled={
-                        fullQuotaWakeupDetecting ||
-                        !hasDetectableFullQuotaWakeupAccounts
-                      }
+                      onClick={openFullQuotaWakeupTestModal}
+                      disabled={!hasDetectableFullQuotaWakeupAccounts}
                       title={t(
                         "codex.wakeup.fullQuotaActionTitle",
-                        "逐个检测当前列表账号，自动勾选满额账号后打开测试唤醒。",
+                        "打开满额账号唤醒测试，账号默认按 5h 额度从高到低排序。",
                       )}
                     >
-                      {fullQuotaWakeupDetecting ? (
-                        <RefreshCw size={14} className="loading-spinner" />
-                      ) : (
-                        <Power size={14} />
-                      )}
+                      <Power size={14} />
                       <span>
-                        {fullQuotaWakeupDetecting
-                          ? t(
-                              "codex.wakeup.fullQuotaDetecting",
-                              "检测中...",
-                            )
-                          : t(
-                              "codex.wakeup.fullQuotaAction",
-                              "唤醒满额账号",
-                            )}
+                        {t("codex.wakeup.fullQuotaAction", "唤醒满额账号")}
                       </span>
                     </button>
                     {errorAccountIds.length > 0 && (

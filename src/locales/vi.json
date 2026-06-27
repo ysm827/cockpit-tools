@@ -2220,14 +2220,8 @@
       "addTask": "Thêm tác vụ",
       "testNow": "Kiểm thử đánh thức",
       "fullQuotaAction": "Đánh thức tài khoản đầy",
-      "fullQuotaActionTitle": "Kiểm tra từng tài khoản trong danh sách hiện tại, chọn sẵn tài khoản còn đầy hạn mức rồi mở kiểm tra đánh thức.",
-      "fullQuotaDetecting": "Đang kiểm tra...",
-      "fullQuotaNoAccounts": "Không có tài khoản OAuth có thể kiểm tra trong danh sách hiện tại.",
-      "fullQuotaDetectSuccess": "Đã kiểm tra {{checked}} tài khoản và chọn sẵn {{selected}} tài khoản đầy hạn mức.",
-      "fullQuotaDetectPartial": "Đã kiểm tra {{checked}} tài khoản, chọn sẵn {{selected}} tài khoản đầy hạn mức và {{failed}} tài khoản làm mới thất bại.",
-      "fullQuotaDetectEmpty": "Kiểm tra xong. Không có tài khoản nào đáp ứng điều kiện đánh thức khi đầy hạn mức.",
-      "fullQuotaDetectEmptyWithFailed": "Đã kiểm tra {{checked}} tài khoản. Không có tài khoản nào đáp ứng điều kiện đầy hạn mức và {{failed}} tài khoản làm mới thất bại.",
-      "fullQuotaDetectFailed": "Không thể kiểm tra tài khoản đầy hạn mức: {{error}}",
+      "fullQuotaActionTitle": "Mở kiểm tra đánh thức tài khoản đầy hạn mức. Mặc định sắp xếp theo hạn mức 5h từ cao xuống thấp.",
+      "fullQuotaNoAccounts": "Không có tài khoản OAuth có thể đánh thức trong danh sách hiện tại.",
       "enableAll": "Bật tất cả tác vụ",
       "disableAll": "Tắt tất cả tác vụ",
       "refreshRuntime": "Kiểm tra lại CLI",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Trực tiếp chính thức",
       "officialChatRuntimePath": "Trò chuyện Codex chính thức của ChatGPT",
       "officialChatRuntimeSource": "Trực tiếp chính thức",
-      "officialChatRuntimeMessage": "Trò chuyện trực tiếp bằng tài khoản OAuth"
+      "officialChatRuntimeMessage": "Trò chuyện trực tiếp bằng tài khoản OAuth",
+      "fullQuotaTestTitle": "Đánh thức tài khoản đầy hạn mức",
+      "fullQuotaAccountsLabel": "Chọn tài khoản để đánh thức",
+      "accountSort": {
+        "default": "Thứ tự mặc định",
+        "hourly": "Theo hạn mức 5h",
+        "weekly": "Theo hạn mức tuần",
+        "email": "Theo email"
+      }
     },
     "sessionManager": {
       "title": "Quản lý phiên",

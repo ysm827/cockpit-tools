@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 use tauri::Emitter;
 use tiny_http::{Header, Method, Response, Server, StatusCode};
 
@@ -34,6 +34,8 @@ const HOST_EVENT_PATH: &str = "/platform-adapter-events";
 const HOST_EVENT_BODY_LIMIT_BYTES: u64 = 1024 * 1024;
 const DATA_DIR_ENV: &str = "COCKPIT_TOOLS_DATA_DIR";
 const PROFILE_ENV: &str = "COCKPIT_TOOLS_PROFILE";
+const PLATFORM_PERF_LOG_ENV: &str = "COCKPIT_PLATFORM_PERF_LOG";
+const ADAPTER_CALL_PERF_THRESHOLD_MS: u128 = 800;
 
 static PLATFORM_ADAPTERS: std::sync::LazyLock<Mutex<HashMap<String, AdapterProcess>>> =
     std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -139,6 +141,20 @@ fn hidden_command(path: &PathBuf) -> Command {
     }
 
     command
+}
+
+fn env_flag(name: &str) -> bool {
+    std::env::var(name)
+        .ok()
+        .map(|value| {
+            let normalized = value.trim().to_ascii_lowercase();
+            normalized == "1" || normalized == "true" || normalized == "yes"
+        })
+        .unwrap_or(false)
+}
+
+fn adapter_perf_log_enabled() -> bool {
+    env_flag(PLATFORM_PERF_LOG_ENV)
 }
 
 fn json_response(status: u16, response: HostEventResponse) -> Response<std::io::Cursor<Vec<u8>>> {
@@ -404,6 +420,7 @@ fn spawn_adapter(
     platform_id: &str,
     installed: platform_package::InstalledPlatformAdapter,
 ) -> Result<AdapterProcess, String> {
+    let started_at = Instant::now();
     if installed.adapter.protocol != "http-json-v1" {
         return Err(format!(
             "平台 adapter 协议不支持: {}",
@@ -428,6 +445,12 @@ fn spawn_adapter(
         .env("COCKPIT_HOST_EVENT_URL", &host_event_bridge.url)
         .env("COCKPIT_HOST_EVENT_TOKEN", &host_event_bridge.token);
 
+    logger::log_info(&format!(
+        "[PlatformAdapter][Perf] adapter 启动开始: platform={}, path={}",
+        platform_id,
+        installed.executable_path.display()
+    ));
+    let spawn_started_at = Instant::now();
     let mut child = command.spawn().map_err(|error| {
         format!(
             "启动平台 adapter 失败: platform={}, path={}, error={}",
@@ -436,9 +459,11 @@ fn spawn_adapter(
             error
         )
     })?;
+    let spawn_elapsed_ms = spawn_started_at.elapsed().as_millis();
 
     start_adapter_stderr_drain(platform_id, &mut child);
 
+    let handshake_started_at = Instant::now();
     let bootstrap_line = match read_bootstrap_line(platform_id, &mut child) {
         Ok(line) => line,
         Err(error) => {
@@ -452,6 +477,7 @@ fn spawn_adapter(
             stop_child(&mut child);
             format!("解析平台 adapter 启动信息失败: {}", error)
         })?;
+    let handshake_elapsed_ms = handshake_started_at.elapsed().as_millis();
     if !bootstrap.ok || bootstrap.protocol != installed.adapter.protocol {
         stop_child(&mut child);
         return Err("平台 adapter 启动握手失败".to_string());
@@ -466,10 +492,13 @@ fn spawn_adapter(
         token: bootstrap.token,
     };
     logger::log_info(&format!(
-        "[PlatformAdapter] adapter 已启动: platform={}, pid={}, endpoint={}",
+        "[PlatformAdapter] adapter 已启动: platform={}, pid={}, endpoint={}, elapsed={}ms, spawn={}ms, handshake={}ms",
         platform_id,
         child.id(),
-        endpoint.url
+        endpoint.url,
+        started_at.elapsed().as_millis(),
+        spawn_elapsed_ms,
+        handshake_elapsed_ms
     ));
 
     Ok(AdapterProcess {
@@ -666,22 +695,69 @@ fn call_platform_adapter_value_with_timeout(
     payload: Value,
     timeout: Duration,
 ) -> Result<Value, String> {
+    let started_at = Instant::now();
     platform_package::ensure_platform_package_installed(platform_id)?;
+    let endpoint_started_at = Instant::now();
     let endpoint = adapter_endpoint(platform_id)?;
+    let endpoint_elapsed_ms = endpoint_started_at.elapsed().as_millis();
+    let request_started_at = Instant::now();
     match post_adapter_request(&endpoint, method, payload.clone(), timeout) {
-        Ok(value) => Ok(value),
+        Ok(value) => {
+            let request_elapsed_ms = request_started_at.elapsed().as_millis();
+            let total_elapsed_ms = started_at.elapsed().as_millis();
+            if adapter_perf_log_enabled() || total_elapsed_ms >= ADAPTER_CALL_PERF_THRESHOLD_MS {
+                logger::log_info(&format!(
+                    "[PlatformAdapter][Perf] adapter 调用完成: platform={}, method={}, endpoint={}ms, request={}ms, total={}ms",
+                    platform_id, method, endpoint_elapsed_ms, request_elapsed_ms, total_elapsed_ms
+                ));
+            }
+            Ok(value)
+        }
         Err(AdapterRequestError::Transport(error)) => {
+            let first_request_elapsed_ms = request_started_at.elapsed().as_millis();
             logger::log_warn(&format!(
-                "[PlatformAdapter] adapter 请求失败，准备重启后重试: platform={}, method={}, error={}",
-                platform_id, method, error
+                "[PlatformAdapter] adapter 请求失败，准备重启后重试: platform={}, method={}, elapsed={}ms, error={}",
+                platform_id, method, first_request_elapsed_ms, error
             ));
             stop_platform_adapter(platform_id);
+            let retry_started_at = Instant::now();
             let endpoint = adapter_endpoint(platform_id)?;
-            post_adapter_request(&endpoint, method, payload, timeout).map_err(|retry_error| {
+            let retry_endpoint_elapsed_ms = retry_started_at.elapsed().as_millis();
+            let retry_request_started_at = Instant::now();
+            let retry_result = post_adapter_request(&endpoint, method, payload, timeout);
+            let retry_request_elapsed_ms = retry_request_started_at.elapsed().as_millis();
+            let total_elapsed_ms = started_at.elapsed().as_millis();
+            if adapter_perf_log_enabled() || total_elapsed_ms >= ADAPTER_CALL_PERF_THRESHOLD_MS {
+                logger::log_info(&format!(
+                    "[PlatformAdapter][Perf] adapter 调用重试完成: platform={}, method={}, firstEndpoint={}ms, firstRequest={}ms, retryEndpoint={}ms, retryRequest={}ms, total={}ms",
+                    platform_id,
+                    method,
+                    endpoint_elapsed_ms,
+                    first_request_elapsed_ms,
+                    retry_endpoint_elapsed_ms,
+                    retry_request_elapsed_ms,
+                    total_elapsed_ms
+                ));
+            }
+            retry_result.map_err(|retry_error| {
                 format!("{}；重启平台 adapter 后重试仍失败: {}", error, retry_error)
             })
         }
-        Err(error) => Err(error.to_string()),
+        Err(error) => {
+            let total_elapsed_ms = started_at.elapsed().as_millis();
+            if adapter_perf_log_enabled() || total_elapsed_ms >= ADAPTER_CALL_PERF_THRESHOLD_MS {
+                logger::log_warn(&format!(
+                    "[PlatformAdapter][Perf] adapter 调用失败: platform={}, method={}, endpoint={}ms, request={}ms, total={}ms, error={}",
+                    platform_id,
+                    method,
+                    endpoint_elapsed_ms,
+                    request_started_at.elapsed().as_millis(),
+                    total_elapsed_ms,
+                    error
+                ));
+            }
+            Err(error.to_string())
+        }
     }
 }
 

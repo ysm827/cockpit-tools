@@ -2266,14 +2266,8 @@
       "addTask": "إضافة مهمة",
       "testNow": "اختبار الإيقاظ",
       "fullQuotaAction": "إيقاظ الحسابات الممتلئة",
-      "fullQuotaActionTitle": "افحص حسابات القائمة الحالية واحدًا تلو الآخر، ثم حدد الحسابات الممتلئة وافتح اختبار الإيقاظ.",
-      "fullQuotaDetecting": "جارٍ الفحص...",
-      "fullQuotaNoAccounts": "لا توجد حسابات OAuth قابلة للفحص في القائمة الحالية.",
-      "fullQuotaDetectSuccess": "تم فحص {{checked}} حساب، وتم تحديد {{selected}} حساب ممتلئ تلقائيًا.",
-      "fullQuotaDetectPartial": "تم فحص {{checked}} حساب، وتم تحديد {{selected}} حساب ممتلئ تلقائيًا، وفشل تحديث {{failed}} حساب.",
-      "fullQuotaDetectEmpty": "انتهى الفحص. لا توجد حسابات تطابق شرط إيقاظ الحسابات الممتلئة.",
-      "fullQuotaDetectEmptyWithFailed": "تم فحص {{checked}} حساب. لا توجد حسابات تطابق شرط الإيقاظ، وفشل تحديث {{failed}} حساب.",
-      "fullQuotaDetectFailed": "فشل فحص الحسابات الممتلئة: {{error}}",
+      "fullQuotaActionTitle": "افتح اختبار إيقاظ الحسابات ذات الحصة الممتلئة. يتم ترتيب الحسابات افتراضيًا حسب حصة 5h من الأعلى إلى الأدنى.",
+      "fullQuotaNoAccounts": "لا توجد حسابات OAuth قابلة للإيقاظ في القائمة الحالية.",
       "enableAll": "تشغيل جميع المهام",
       "disableAll": "إيقاف جميع المهام",
       "refreshRuntime": "إعادة فحص CLI",
@@ -2435,7 +2429,15 @@
       "officialChatRuntimeTitle": "اتصال رسمي مباشر",
       "officialChatRuntimePath": "دردشة Codex الرسمية من ChatGPT",
       "officialChatRuntimeSource": "اتصال رسمي مباشر",
-      "officialChatRuntimeMessage": "محادثة مباشرة بحساب OAuth"
+      "officialChatRuntimeMessage": "محادثة مباشرة بحساب OAuth",
+      "fullQuotaTestTitle": "إيقاظ الحسابات الممتلئة",
+      "fullQuotaAccountsLabel": "اختر الحسابات المراد إيقاظها",
+      "accountSort": {
+        "default": "الترتيب الافتراضي",
+        "hourly": "حسب حصة 5h",
+        "weekly": "حسب الحصة الأسبوعية",
+        "email": "حسب البريد الإلكتروني"
+      }
     },
     "sessionManager": {
       "title": "إدارة الجلسات",

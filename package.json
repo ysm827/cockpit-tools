@@ -21,8 +21,9 @@
     "audit:platform-full-hot-update": "node scripts/verify-platform-packages.cjs --strict-full-hot-update",
     "release:preflight": "node scripts/release/preflight.cjs",
     "preview": "vite preview",
-    "pretauri:dev": "npm run typecheck",
-    "tauri:dev": "node scripts/tauri-dev.cjs",
+    "tauri:dev": "node scripts/tauri-dist-dev.cjs",
+    "tauri:dev:vite": "node scripts/tauri-dev.cjs --fast",
+    "tauri:dev:full": "npm run typecheck && node scripts/tauri-dev.cjs",
     "pretauri": "npm run typecheck",
     "tauri": "node scripts/tauri.cjs",
     "sync-version": "node scripts/sync-version.js"

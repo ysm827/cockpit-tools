@@ -2220,14 +2220,8 @@
       "addTask": "Aufgabe hinzufügen",
       "testNow": "Wakeup testen",
       "fullQuotaAction": "Volle Konten wecken",
-      "fullQuotaActionTitle": "Prüft die aktuelle Kontoliste nacheinander, wählt Konten mit voller Quote vor und öffnet den Wakeup-Test.",
-      "fullQuotaDetecting": "Wird geprüft...",
-      "fullQuotaNoAccounts": "In der aktuellen Liste gibt es keine prüfbaren OAuth-Konten.",
-      "fullQuotaDetectSuccess": "{{checked}} Konto/Konten geprüft und {{selected}} Konto/Konten mit voller Quote vorgewählt.",
-      "fullQuotaDetectPartial": "{{checked}} Konto/Konten geprüft, {{selected}} Konto/Konten mit voller Quote vorgewählt, {{failed}} konnten nicht aktualisiert werden.",
-      "fullQuotaDetectEmpty": "Prüfung abgeschlossen. Kein Konto erfüllt die Bedingung für Wakeup mit voller Quote.",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}} Konto/Konten geprüft. Kein Konto erfüllt die Bedingung für volle Quote, {{failed}} konnten nicht aktualisiert werden.",
-      "fullQuotaDetectFailed": "Prüfung der Konten mit voller Quote fehlgeschlagen: {{error}}",
+      "fullQuotaActionTitle": "Öffnet den Wakeup-Test für Konten mit voller Quote. Konten werden standardmäßig nach 5h-Quote absteigend sortiert.",
+      "fullQuotaNoAccounts": "In der aktuellen Liste gibt es keine aufweckbaren OAuth-Konten.",
       "enableAll": "Alle Aufgaben aktivieren",
       "disableAll": "Alle Aufgaben deaktivieren",
       "refreshRuntime": "CLI erneut prüfen",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Offiziell direkt",
       "officialChatRuntimePath": "Offizieller ChatGPT-Codex-Chat",
       "officialChatRuntimeSource": "Offiziell direkt",
-      "officialChatRuntimeMessage": "Direkter Chat mit OAuth-Konto"
+      "officialChatRuntimeMessage": "Direkter Chat mit OAuth-Konto",
+      "fullQuotaTestTitle": "Volle Konten aufwecken",
+      "fullQuotaAccountsLabel": "Aufzuweckende Konten wählen",
+      "accountSort": {
+        "default": "Standardreihenfolge",
+        "hourly": "Nach 5h-Quote",
+        "weekly": "Nach Wochenquote",
+        "email": "Nach E-Mail"
+      }
     },
     "sessionManager": {
       "title": "Sitzungsverwaltung",

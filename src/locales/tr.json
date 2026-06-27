@@ -2220,14 +2220,8 @@
       "addTask": "Görev ekle",
       "testNow": "Uyandırmayı test et",
       "fullQuotaAction": "Dolu hesapları uyandır",
-      "fullQuotaActionTitle": "Geçerli listedeki hesapları tek tek kontrol eder, kotası dolu hesapları önceden seçer ve uyandırma testini açar.",
-      "fullQuotaDetecting": "Kontrol ediliyor...",
-      "fullQuotaNoAccounts": "Geçerli listede kontrol edilebilir OAuth hesabı yok.",
-      "fullQuotaDetectSuccess": "{{checked}} hesap kontrol edildi ve kotası dolu {{selected}} hesap önceden seçildi.",
-      "fullQuotaDetectPartial": "{{checked}} hesap kontrol edildi, kotası dolu {{selected}} hesap seçildi ve {{failed}} hesap yenilenemedi.",
-      "fullQuotaDetectEmpty": "Kontrol tamamlandı. Dolu kota uyandırma koşulunu karşılayan hesap yok.",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}} hesap kontrol edildi. Dolu kota koşulunu karşılayan hesap yok ve {{failed}} hesap yenilenemedi.",
-      "fullQuotaDetectFailed": "Kotası dolu hesaplar kontrol edilemedi: {{error}}",
+      "fullQuotaActionTitle": "Kotası dolu hesaplar için uyandırma testini açar. Hesaplar varsayılan olarak 5h kotasına göre yüksekten düşüğe sıralanır.",
+      "fullQuotaNoAccounts": "Geçerli listede uyandırılabilir OAuth hesabı yok.",
       "enableAll": "Tüm görevleri aç",
       "disableAll": "Tüm görevleri kapat",
       "refreshRuntime": "CLI’yi yeniden kontrol et",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Resmi doğrudan",
       "officialChatRuntimePath": "ChatGPT resmi Codex sohbeti",
       "officialChatRuntimeSource": "Resmi doğrudan",
-      "officialChatRuntimeMessage": "OAuth hesabıyla doğrudan sohbet"
+      "officialChatRuntimeMessage": "OAuth hesabıyla doğrudan sohbet",
+      "fullQuotaTestTitle": "Dolu hesapları uyandır",
+      "fullQuotaAccountsLabel": "Uyandırılacak hesapları seç",
+      "accountSort": {
+        "default": "Varsayılan sıra",
+        "hourly": "5h kotasına göre",
+        "weekly": "Haftalık kotaya göre",
+        "email": "E-postaya göre"
+      }
     },
     "sessionManager": {
       "title": "Oturum yöneticisi",

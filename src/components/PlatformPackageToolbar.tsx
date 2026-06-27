@@ -688,9 +688,7 @@ export function PlatformPackageToolbar({
   const statusText = getPlatformPackageStatusText(platformPackage, t);
   const canInstall = isHotUpdate && (platformPackage.installStatus === 'notInstalled'
     || platformPackage.installStatus === 'error'
-    || (!platformPackage.runtimeReady
-      && platformPackage.installStatus !== 'incompatible'
-      && platformPackage.installStatus !== 'updateAvailable'));
+    || (!platformPackage.runtimeReady && platformPackage.installStatus !== 'incompatible'));
   const canUpdate = isHotUpdate && platformPackage.installStatus === 'updateAvailable';
   const shouldShowRepairAction = isHotUpdate && (
     platformPackage.installStatus === 'error'

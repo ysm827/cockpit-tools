@@ -46,7 +46,25 @@ type CachedPlatformRemoteRuntime = {
 };
 
 const REMOTE_RUNTIME_CACHE_MAX = 24;
+const PLATFORM_REMOTE_PERF_SLOW_MS = 500;
 const platformRemoteRuntimeCache = new Map<string, CachedPlatformRemoteRuntime>();
+
+function platformRemotePerfLogEnabled(): boolean {
+  return import.meta.env.DEV || import.meta.env.VITE_COCKPIT_PLATFORM_PERF_LOG === '1';
+}
+
+function logPlatformRemotePerf(
+  platformId: PlatformId,
+  message: string,
+  elapsed: number,
+  detail?: Record<string, unknown>,
+): void {
+  if (!platformRemotePerfLogEnabled() && elapsed < PLATFORM_REMOTE_PERF_SLOW_MS) return;
+  console.info(
+    `[PlatformRemote][Perf] ${message}: platform=${platformId}, elapsed=${Math.round(elapsed)}ms`,
+    detail ?? '',
+  );
+}
 
 function buildRemoteModuleUrl(source: string): string {
   const blob = new Blob([source], { type: 'text/javascript;charset=utf-8' });
@@ -289,11 +307,15 @@ export function PlatformRuntimePageHost({
     cachedRuntime = getCachedPlatformRemoteRuntime(platformId, stateRef.current);
     cachedRuntime.lastUsedAt = Date.now();
 
+    const loadStartedAt = performance.now();
     void Promise.all([cachedRuntime.entryPromise, cachedRuntime.remotePromise])
       .then(async ([entry, remote]: [PlatformPackageUiEntry, PlatformRemoteModule]) => {
         if (cancelled) return;
 
+        const remoteReadyElapsed = performance.now() - loadStartedAt;
+        const styleStartedAt = performance.now();
         installRemoteStyle(cachedRuntime, entry.version, entry.style);
+        const styleElapsed = performance.now() - styleStartedAt;
         if (cancelled) {
           cleanupInjectedAssets();
           return;
@@ -313,12 +335,21 @@ export function PlatformRuntimePageHost({
           tabsSlotId: tabsSlotRootElement?.id ?? tabsSlotId,
           runtimeParams: runtimeParamsRef.current,
         };
+        const mountStartedAt = performance.now();
         const mounted = await mount(container, hostApi);
+        const mountElapsed = performance.now() - mountStartedAt;
         if (cancelled) {
           resolveCleanup(remote, container, mounted)();
           return;
         }
         cleanupRef.current = resolveCleanup(remote, container, mounted);
+        logPlatformRemotePerf(platformId, 'remote mounted', performance.now() - loadStartedAt, {
+          version: entry.version,
+          remoteReadyMs: Math.round(remoteReadyElapsed),
+          styleMs: Math.round(styleElapsed),
+          mountMs: Math.round(mountElapsed),
+          cacheKey: cachedRuntime.key,
+        });
       })
       .catch((loadError) => {
         if (cancelled) return;
@@ -327,6 +358,12 @@ export function PlatformRuntimePageHost({
         cleanupTabsSlot();
         container.replaceChildren();
         const message = loadError instanceof Error ? loadError.message : String(loadError);
+        console.warn(
+          `[PlatformRemote][Perf] remote load failed: platform=${platformId}, elapsed=${Math.round(
+            performance.now() - loadStartedAt,
+          )}ms`,
+          loadError,
+        );
         setError(message);
       })
       .finally(() => {

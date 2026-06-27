@@ -2220,14 +2220,8 @@
       "addTask": "Dodaj zadanie",
       "testNow": "Przetestuj wybudzanie",
       "fullQuotaAction": "Wybudź pełne konta",
-      "fullQuotaActionTitle": "Sprawdza konta z bieżącej listy po kolei, zaznacza konta z pełną pulą i otwiera test wybudzania.",
-      "fullQuotaDetecting": "Sprawdzanie...",
-      "fullQuotaNoAccounts": "Na bieżącej liście nie ma sprawdzalnych kont OAuth.",
-      "fullQuotaDetectSuccess": "Sprawdzono {{checked}} kont i zaznaczono {{selected}} kont z pełną pulą.",
-      "fullQuotaDetectPartial": "Sprawdzono {{checked}} kont, zaznaczono {{selected}} kont z pełną pulą, a {{failed}} nie udało się odświeżyć.",
-      "fullQuotaDetectEmpty": "Sprawdzanie zakończone. Żadne konto nie spełnia warunku wybudzenia z pełną pulą.",
-      "fullQuotaDetectEmptyWithFailed": "Sprawdzono {{checked}} kont. Żadne nie spełnia warunku pełnej puli, a {{failed}} nie udało się odświeżyć.",
-      "fullQuotaDetectFailed": "Nie udało się sprawdzić kont z pełną pulą: {{error}}",
+      "fullQuotaActionTitle": "Otwiera test wybudzania kont z pełną pulą. Domyślnie konta są sortowane według puli 5h malejąco.",
+      "fullQuotaNoAccounts": "Na bieżącej liście nie ma kont OAuth do wybudzenia.",
       "enableAll": "Włącz wszystkie zadania",
       "disableAll": "Wyłącz wszystkie zadania",
       "refreshRuntime": "Sprawdź CLI ponownie",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Oficjalnie bezpośrednio",
       "officialChatRuntimePath": "Oficjalny czat Codex w ChatGPT",
       "officialChatRuntimeSource": "Oficjalnie bezpośrednio",
-      "officialChatRuntimeMessage": "Bezpośredni czat kontem OAuth"
+      "officialChatRuntimeMessage": "Bezpośredni czat kontem OAuth",
+      "fullQuotaTestTitle": "Wybudź pełne konta",
+      "fullQuotaAccountsLabel": "Wybierz konta do wybudzenia",
+      "accountSort": {
+        "default": "Domyślna kolejność",
+        "hourly": "Według puli 5h",
+        "weekly": "Według puli tygodniowej",
+        "email": "Według e-maila"
+      }
     },
     "sessionManager": {
       "title": "Menedżer sesji",

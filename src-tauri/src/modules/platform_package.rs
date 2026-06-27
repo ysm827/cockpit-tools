@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
@@ -68,6 +69,13 @@ const PLATFORM_PACKAGE_TEST_INDEX_URL: &str =
 const PLATFORM_PACKAGE_INDEX_CACHE_TTL_MS: i64 = 30 * 60 * 1000;
 const MAX_PLATFORM_PACKAGE_DOWNLOAD_BYTES: u64 = 80 * 1024 * 1024;
 const PLATFORM_PACKAGE_PROGRESS_EVENT: &str = "platform-package://progress";
+const PLATFORM_PERF_LOG_ENV: &str = "COCKPIT_PLATFORM_PERF_LOG";
+const PLATFORM_PACKAGE_LIST_SLOW_THRESHOLD_MS: u128 = 500;
+const PLATFORM_PACKAGE_ITEM_SLOW_THRESHOLD_MS: u128 = 80;
+const PLATFORM_PACKAGE_UI_ENTRY_SLOW_THRESHOLD_MS: u128 = 200;
+
+static LOCAL_CONTENT_MISMATCH_LOGGED: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PlatformPackageOperation {
@@ -395,6 +403,20 @@ fn now_ts_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as i64
+}
+
+fn env_flag(name: &str) -> bool {
+    std::env::var(name)
+        .ok()
+        .map(|value| {
+            let normalized = value.trim().to_ascii_lowercase();
+            normalized == "1" || normalized == "true" || normalized == "yes"
+        })
+        .unwrap_or(false)
+}
+
+fn platform_perf_log_enabled() -> bool {
+    env_flag(PLATFORM_PERF_LOG_ENV)
 }
 
 fn emit_platform_package_progress(
@@ -1120,8 +1142,41 @@ fn resolve_source_package_dir(app: &AppHandle, platform_id: &str) -> Result<Path
 
 fn read_local_source(app: &AppHandle, platform_id: &str) -> Option<PlatformPackageSource> {
     let dir = resolve_source_package_dir(app, platform_id).ok()?;
-    let manifest = validate_manifest(platform_id, &dir).ok()?;
+    let mut manifest = validate_manifest(platform_id, &dir).ok()?;
+    if manifest.download_size_bytes.is_none() {
+        manifest.download_size_bytes =
+            resolve_local_source_archive_size(platform_id, &manifest.version)
+                .or_else(|| Some(dir_size(&dir)));
+    }
     Some(PlatformPackageSource::Local { dir, manifest })
+}
+
+fn repo_root_from_current_process() -> Option<PathBuf> {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir.parent().map(Path::to_path_buf)
+}
+
+fn resolve_local_source_archive_size(platform_id: &str, version: &str) -> Option<u64> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    let repo_root = repo_root_from_current_process()?;
+    let dist_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(BOOTSTRAP_DIST_DIR);
+    let candidates = [
+        dist_dir.join(format!(
+            "{}-{}-{}-{}.zip",
+            platform_id,
+            version,
+            current_artifact_os(),
+            current_artifact_arch()
+        )),
+        dist_dir.join(format!("{}-{}.zip", platform_id, version)),
+    ];
+    candidates.into_iter().find_map(|path| {
+        path.is_file()
+            .then(|| fs::metadata(path).ok().map(|metadata| metadata.len()))
+            .flatten()
+    })
 }
 
 fn platform_package_index_url() -> String {
@@ -1461,7 +1516,14 @@ fn load_remote_index(
     app: &AppHandle,
     force_refresh: bool,
 ) -> Result<Option<PlatformPackageRemoteIndex>, String> {
+    let started_at = Instant::now();
     if let Some(index) = load_local_remote_index()? {
+        logger::log_info(&format!(
+            "[PlatformPackage][Perf] 平台包索引加载完成: source=local, forceRefresh={}, packages={}, elapsed={}ms",
+            force_refresh,
+            index.packages.len(),
+            started_at.elapsed().as_millis()
+        ));
         return Ok(Some(index));
     }
 
@@ -1470,6 +1532,12 @@ fn load_remote_index(
             let fresh =
                 now_ts_ms().saturating_sub(cache.time) <= PLATFORM_PACKAGE_INDEX_CACHE_TTL_MS;
             if fresh {
+                logger::log_info(&format!(
+                    "[PlatformPackage][Perf] 平台包索引加载完成: source=cache, forceRefresh={}, packages={}, elapsed={}ms",
+                    force_refresh,
+                    cache.data.packages.len(),
+                    started_at.elapsed().as_millis()
+                ));
                 return Ok(Some(cache.data));
             }
         }
@@ -1483,6 +1551,12 @@ fn load_remote_index(
                     err
                 ));
             }
+            logger::log_info(&format!(
+                "[PlatformPackage][Perf] 平台包索引加载完成: source=remote, forceRefresh={}, packages={}, elapsed={}ms",
+                force_refresh,
+                index.packages.len(),
+                started_at.elapsed().as_millis()
+            ));
             Ok(Some(index))
         }
         Err(error) => {
@@ -1491,9 +1565,24 @@ fn load_remote_index(
                 error
             ));
             if let Some(cache) = read_index_cache()? {
+                logger::log_info(&format!(
+                    "[PlatformPackage][Perf] 平台包索引加载完成: source=stale-cache, forceRefresh={}, packages={}, elapsed={}ms",
+                    force_refresh,
+                    cache.data.packages.len(),
+                    started_at.elapsed().as_millis()
+                ));
                 return Ok(Some(cache.data));
             }
-            load_bundled_seed_index(app)
+            let seed = load_bundled_seed_index(app)?;
+            if let Some(index) = &seed {
+                logger::log_info(&format!(
+                    "[PlatformPackage][Perf] 平台包索引加载完成: source=seed, forceRefresh={}, packages={}, elapsed={}ms",
+                    force_refresh,
+                    index.packages.len(),
+                    started_at.elapsed().as_millis()
+                ));
+            }
+            Ok(seed)
         }
     }
 }
@@ -2500,11 +2589,14 @@ fn build_state(
             )
         });
 
+    let explicit_uninstalled = record
+        .map(|item| item.explicitly_uninstalled)
+        .unwrap_or(false);
     let mut runtime_ready = installed
         && validation_error.is_none()
         && runtime_contract_error.is_none()
         && local_content_error.is_none()
-        && record.map(|item| item.runtime_ready).unwrap_or(false);
+        && !explicit_uninstalled;
     let mut error_message = validation_error
         .or(runtime_contract_error)
         .or(local_content_error)
@@ -2550,7 +2642,7 @@ fn build_state(
         "installed"
     };
 
-    Ok(PlatformPackageState {
+    let state = PlatformPackageState {
         platform_id: platform_id.to_string(),
         package_mode: manifest_for_meta
             .map(|manifest| manifest.package_mode.clone())
@@ -2576,25 +2668,67 @@ fn build_state(
             .map(|manifest| manifest.contributions.clone())
             .unwrap_or_default(),
         changelog,
-    })
+    };
+
+    if installed || record.is_some() || state.error_message.is_some() {
+        match read_registry() {
+            Ok(mut registry) => {
+                let explicitly_uninstalled = if installed {
+                    false
+                } else {
+                    record_explicitly_uninstalled(&registry, platform_id)
+                };
+                upsert_record(
+                    &mut registry,
+                    PersistedPlatformPackage {
+                        platform_id: platform_id.to_string(),
+                        installed,
+                        runtime_ready: state.runtime_ready,
+                        installed_version: if installed {
+                            state.installed_version.clone()
+                        } else {
+                            None
+                        },
+                        last_checked_at: Some(now_ts_ms()),
+                        error_message: state.error_message.clone(),
+                        explicitly_uninstalled,
+                    },
+                );
+                if let Err(error) = write_registry(&registry) {
+                    logger::log_warn(&format!(
+                        "[PlatformPackage] 同步平台包状态到 registry 失败: platform={}, error={}",
+                        platform_id, error
+                    ));
+                }
+            }
+            Err(error) => logger::log_warn(&format!(
+                "[PlatformPackage] 读取 registry 以同步平台包状态失败: platform={}, error={}",
+                platform_id, error
+            )),
+        }
+    }
+
+    Ok(state)
 }
 
 fn resolve_source_size_from_current_process(platform_id: &str) -> Option<u64> {
     if !cfg!(debug_assertions) {
         return None;
     }
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let repo_root = manifest_dir.parent()?;
+    let repo_root = repo_root_from_current_process()?;
     let source_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(platform_id);
-    source_dir.exists().then(|| dir_size(&source_dir))
+    let manifest = validate_manifest(platform_id, &source_dir).ok();
+    manifest
+        .as_ref()
+        .and_then(|manifest| resolve_local_source_archive_size(platform_id, &manifest.version))
+        .or_else(|| source_dir.exists().then(|| dir_size(&source_dir)))
 }
 
 fn local_source_package_dir_from_current_process(platform_id: &str) -> Option<PathBuf> {
     if !cfg!(debug_assertions) {
         return None;
     }
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let repo_root = manifest_dir.parent()?;
+    let repo_root = repo_root_from_current_process()?;
     let source_dir = repo_root.join(PLATFORM_PACKAGE_DIR).join(platform_id);
     source_dir
         .join(MANIFEST_FILE)
@@ -2721,10 +2855,20 @@ fn same_version_local_package_content_mismatch(
         return Ok(false);
     }
 
-    logger::log_warn(&format!(
-        "[PlatformPackage] 本地平台包内容不一致: platform={}, version={}, installedHash={}, sourceHash={}",
+    let log_key = format!(
+        "{}:{}:{}:{}",
         platform_id, installed.version, installed_fingerprint, source_fingerprint
-    ));
+    );
+    let should_log = LOCAL_CONTENT_MISMATCH_LOGGED
+        .lock()
+        .map(|mut logged| logged.insert(log_key))
+        .unwrap_or(true);
+    if should_log {
+        logger::log_warn(&format!(
+            "[PlatformPackage] 本地平台包内容不一致: platform={}, version={}, installedHash={}, sourceHash={}",
+            platform_id, installed.version, installed_fingerprint, source_fingerprint
+        ));
+    }
     Ok(true)
 }
 
@@ -2804,9 +2948,11 @@ fn read_installed_manifest_and_update_state(
 }
 
 pub fn list_platform_packages(app: &AppHandle) -> Result<Vec<PlatformPackageState>, String> {
+    let started_at = Instant::now();
     let registry = read_registry()?;
     let mut states = Vec::new();
     for platform_id in SUPPORTED_PLATFORM_IDS {
+        let item_started_at = Instant::now();
         let (installed_manifest, validation_error) =
             read_installed_manifest_and_update_state(platform_id)?;
         let refreshed_registry = read_registry()?;
@@ -2821,6 +2967,22 @@ pub fn list_platform_packages(app: &AppHandle) -> Result<Vec<PlatformPackageStat
             source_root,
             validation_error,
         )?);
+        let item_elapsed_ms = item_started_at.elapsed().as_millis();
+        if platform_perf_log_enabled() || item_elapsed_ms >= PLATFORM_PACKAGE_ITEM_SLOW_THRESHOLD_MS
+        {
+            logger::log_info(&format!(
+                "[PlatformPackage][Perf] 平台包状态扫描: platform={}, elapsed={}ms",
+                platform_id, item_elapsed_ms
+            ));
+        }
+    }
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    if platform_perf_log_enabled() || total_elapsed_ms >= PLATFORM_PACKAGE_LIST_SLOW_THRESHOLD_MS {
+        logger::log_info(&format!(
+            "[PlatformPackage][Perf] 平台包状态列表完成: count={}, elapsed={}ms",
+            states.len(),
+            total_elapsed_ms
+        ));
     }
     Ok(states)
 }
@@ -3309,15 +3471,19 @@ pub fn ensure_platform_package_installed(platform_id: &str) -> Result<(), String
 }
 
 pub fn get_platform_package_ui_entry(platform_id: &str) -> Result<PlatformPackageUiEntry, String> {
+    let started_at = Instant::now();
     ensure_platform_package_installed(platform_id)?;
     let current_dir = package_current_dir(platform_id)?;
+    let validate_started_at = Instant::now();
     let manifest = validate_manifest(platform_id, &current_dir)?;
+    let validate_elapsed_ms = validate_started_at.elapsed().as_millis();
     let ui = manifest
         .ui
         .clone()
         .ok_or_else(|| format!("平台包未声明 UI runtime: {}", platform_id))?;
     let entry_path = safe_relative_path(&ui.entry, "平台包 UI entry")?;
     let ui_path = current_dir.join(entry_path);
+    let source_read_started_at = Instant::now();
     let source = fs::read_to_string(&ui_path).map_err(|err| {
         format!(
             "读取平台包 UI 失败: path={}, error={}",
@@ -3325,6 +3491,8 @@ pub fn get_platform_package_ui_entry(platform_id: &str) -> Result<PlatformPackag
             err
         )
     })?;
+    let source_read_elapsed_ms = source_read_started_at.elapsed().as_millis();
+    let style_read_started_at = Instant::now();
     let style = match ui.style.as_deref() {
         Some(style_entry) => {
             let style_path = safe_relative_path(style_entry, "平台包 UI style")?;
@@ -3339,6 +3507,22 @@ pub fn get_platform_package_ui_entry(platform_id: &str) -> Result<PlatformPackag
         }
         None => None,
     };
+    let style_read_elapsed_ms = style_read_started_at.elapsed().as_millis();
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    if platform_perf_log_enabled() || total_elapsed_ms >= PLATFORM_PACKAGE_UI_ENTRY_SLOW_THRESHOLD_MS
+    {
+        logger::log_info(&format!(
+            "[PlatformPackage][Perf] 平台包 UI entry 加载完成: platform={}, version={}, sourceBytes={}, styleBytes={}, validate={}ms, sourceRead={}ms, styleRead={}ms, total={}ms",
+            platform_id,
+            manifest.version,
+            source.len(),
+            style.as_ref().map(|value| value.len()).unwrap_or(0),
+            validate_elapsed_ms,
+            source_read_elapsed_ms,
+            style_read_elapsed_ms,
+            total_elapsed_ms
+        ));
+    }
 
     Ok(PlatformPackageUiEntry {
         platform_id: platform_id.to_string(),

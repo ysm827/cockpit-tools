@@ -14,6 +14,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { confirm as confirmDialog } from '@tauri-apps/plugin-dialog';
 import {
   Check,
+  ArrowDown,
+  ArrowDownWideNarrow,
+  ArrowUp,
   ChevronDown,
   ChevronLeft,
   CircleAlert,
@@ -32,6 +35,7 @@ import { useEscClose } from '../../hooks/useEscClose';
 import {
   CodexAccount,
   getCodexAuthMetadata,
+  getCodexEffectiveQuotaPercentages,
   isCodexApiKeyAccount,
   isCodexTeamLikePlan,
 } from '../../types/codex';
@@ -54,6 +58,7 @@ import {
   MultiSelectFilterDropdown,
   type MultiSelectFilterOption,
 } from '../MultiSelectFilterDropdown';
+import { SingleSelectFilterDropdown } from '../SingleSelectFilterDropdown';
 import { PaginationControls } from '../PaginationControls';
 import {
   buildPaginationPageSizeStorageKey,
@@ -83,7 +88,10 @@ interface CodexWakeupGeneralConfig {
 
 export interface CodexWakeupTestOpenRequest {
   signal: number;
-  accountIds: string[];
+  accountIds?: string[];
+  variant?: 'standard' | 'fullQuota';
+  defaultSortBy?: WakeupAccountSortBy;
+  defaultSortDirection?: WakeupAccountSortDirection;
   notice?: string;
 }
 
@@ -130,6 +138,9 @@ interface AccountPickerFilters {
   planTypes: string[];
   tags: string[];
 }
+
+type WakeupAccountSortBy = 'default' | 'hourly' | 'weekly' | 'created_at' | 'email';
+type WakeupAccountSortDirection = 'asc' | 'desc';
 
 interface WakeupSingleSelectOption {
   value: string;
@@ -246,6 +257,53 @@ function createEmptyAccountPickerFilters(): AccountPickerFilters {
     planTypes: [],
     tags: [],
   };
+}
+
+function getWakeupQuotaSortValue(account: CodexAccount, sortBy: 'hourly' | 'weekly'): number | null {
+  const quota = getCodexEffectiveQuotaPercentages(account.quota);
+  const value = sortBy === 'hourly' ? quota.hourly : quota.weekly;
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function compareNullableNumber(
+  left: number | null,
+  right: number | null,
+  direction: WakeupAccountSortDirection,
+): number {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+  return direction === 'desc' ? right - left : left - right;
+}
+
+function compareWakeupAccountsBySort(
+  left: CodexAccount,
+  right: CodexAccount,
+  sortBy: WakeupAccountSortBy,
+  direction: WakeupAccountSortDirection,
+  orderIndex: Map<string, number>,
+): number {
+  if (sortBy === 'hourly' || sortBy === 'weekly') {
+    const diff = compareNullableNumber(
+      getWakeupQuotaSortValue(left, sortBy),
+      getWakeupQuotaSortValue(right, sortBy),
+      direction,
+    );
+    if (diff !== 0) return diff;
+  } else if (sortBy === 'created_at') {
+    const diff = direction === 'desc'
+      ? right.created_at - left.created_at
+      : left.created_at - right.created_at;
+    if (diff !== 0) return diff;
+  } else if (sortBy === 'email') {
+    const leftEmail = (left.email || left.id).toLowerCase();
+    const rightEmail = (right.email || right.id).toLowerCase();
+    const diff = leftEmail.localeCompare(rightEmail);
+    if (diff !== 0) return direction === 'desc' ? -diff : diff;
+  }
+
+  return (orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER)
+    - (orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER);
 }
 
 function createRuntimeConfigDraft(status?: CodexWakeupBatchResult['runtime'] | null): RuntimeConfigDraft {
@@ -872,6 +930,13 @@ export function CodexWakeupContent({
     () => accounts.filter((account) => !isCodexApiKeyAccount(account)),
     [accounts],
   );
+  const wakeupAccountOrderIndex = useMemo(() => {
+    const index = new Map<string, number>();
+    oauthAccounts.forEach((account, order) => {
+      index.set(account.id, order);
+    });
+    return index;
+  }, [oauthAccounts]);
   const modelPresetMap = useMemo(
     () => new Map(state.model_presets.map((preset) => [preset.id, preset])),
     [state.model_presets],
@@ -1013,6 +1078,7 @@ export function CodexWakeupContent({
     setShowPresetModal(true);
   }, [clearPresetModalError, openPresetManagerSignal]);
   const [showTestModal, setShowTestModal] = useState(false);
+  const [testModalVariant, setTestModalVariant] = useState<'standard' | 'fullQuota'>('standard');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [testAccountIds, setTestAccountIds] = useState<string[]>([]);
   const [testPrompt, setTestPrompt] = useState('');
@@ -1027,6 +1093,9 @@ export function CodexWakeupContent({
     set: setTestModalError,
   } = useModalErrorState();
   const [testAccountFilters, setTestAccountFilters] = useState<AccountPickerFilters>(createEmptyAccountPickerFilters());
+  const [testAccountSortBy, setTestAccountSortBy] = useState<WakeupAccountSortBy>('default');
+  const [testAccountSortDirection, setTestAccountSortDirection] =
+    useState<WakeupAccountSortDirection>('asc');
   const activeTestRunTokenRef = useRef(0);
   const activeTestScopeIdRef = useRef<string | null>(null);
   const handledOpenTestRequestSignalRef = useRef<number | null>(null);
@@ -1569,8 +1638,17 @@ export function CodexWakeupContent({
     [filterWakeupAccounts, taskAccountFilters],
   );
   const filteredTestAccounts = useMemo(
-    () => filterWakeupAccounts(testAccountFilters),
-    [filterWakeupAccounts, testAccountFilters],
+    () =>
+      [...filterWakeupAccounts(testAccountFilters)].sort((left, right) =>
+        compareWakeupAccountsBySort(
+          left,
+          right,
+          testAccountSortBy,
+          testAccountSortDirection,
+          wakeupAccountOrderIndex,
+        ),
+      ),
+    [filterWakeupAccounts, testAccountFilters, testAccountSortBy, testAccountSortDirection, wakeupAccountOrderIndex],
   );
   const taskAccountPagination = usePagination({
     items: filteredTaskAccounts,
@@ -1591,7 +1669,12 @@ export function CodexWakeupContent({
 
   useEffect(() => {
     testAccountPagination.setCurrentPage(1);
-  }, [testAccountFilters, testAccountPagination.setCurrentPage]);
+  }, [
+    testAccountFilters,
+    testAccountSortBy,
+    testAccountSortDirection,
+    testAccountPagination.setCurrentPage,
+  ]);
   const allFilteredTaskSelected = useMemo(
     () =>
       filteredTaskAccounts.length > 0 &&
@@ -1719,6 +1802,12 @@ export function CodexWakeupContent({
       filteredAccounts: CodexAccount[],
       allSelected: boolean,
       onToggleSelectAll: () => void,
+      sortConfig?: {
+        sortBy: WakeupAccountSortBy;
+        sortDirection: WakeupAccountSortDirection;
+        onSortByChange: (value: WakeupAccountSortBy) => void;
+        onToggleSortDirection: () => void;
+      },
     ) => (
       <>
         <div className="codex-wakeup-account-filter-toolbar">
@@ -1771,6 +1860,57 @@ export function CodexWakeupContent({
                 }))
               }
             />
+            {sortConfig && (
+              <div className="codex-wakeup-account-sort-controls">
+                <SingleSelectFilterDropdown
+                  value={sortConfig.sortBy}
+                  options={[
+                    {
+                      value: 'default',
+                      label: t('codex.wakeup.accountSort.default', '默认顺序'),
+                    },
+                    {
+                      value: 'hourly',
+                      label: t('codex.wakeup.accountSort.hourly', '按5h额度'),
+                    },
+                    {
+                      value: 'weekly',
+                      label: t('codex.wakeup.accountSort.weekly', '按周额度'),
+                    },
+                    {
+                      value: 'created_at',
+                      label: t('common.shared.sort.createdAt', '按创建时间'),
+                    },
+                    {
+                      value: 'email',
+                      label: t('codex.wakeup.accountSort.email', '按邮箱'),
+                    },
+                  ]}
+                  ariaLabel={t('common.shared.sortLabel', '排序')}
+                  icon={<ArrowDownWideNarrow size={14} />}
+                  onChange={(value) => sortConfig.onSortByChange(value as WakeupAccountSortBy)}
+                />
+                {sortConfig.sortBy !== 'default' && (
+                  <button
+                    type="button"
+                    className="sort-direction-btn codex-wakeup-account-sort-direction"
+                    onClick={sortConfig.onToggleSortDirection}
+                    title={
+                      sortConfig.sortDirection === 'desc'
+                        ? t('common.shared.sort.descTooltip', '当前：降序，点击切换为升序')
+                        : t('common.shared.sort.ascTooltip', '当前：升序，点击切换为降序')
+                    }
+                    aria-label={t('common.shared.sort.toggleDirection', '切换排序方向')}
+                  >
+                    {sortConfig.sortDirection === 'desc' ? (
+                      <ArrowDown size={15} />
+                    ) : (
+                      <ArrowUp size={15} />
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="codex-wakeup-account-selection-bar">
@@ -1983,7 +2123,10 @@ export function CodexWakeupContent({
 
   const openTestModal = useCallback(async () => {
     setTestModalError(null);
+    setTestModalVariant('standard');
     setTestAccountFilters(createEmptyAccountPickerFilters());
+    setTestAccountSortBy('default');
+    setTestAccountSortDirection('asc');
     setTestModelPresetId(resolvedModelSelection.modelPresetId);
     setTestModel(resolvedModelSelection.model);
     setTestModelReasoningEffort(resolvedModelSelection.modelReasoningEffort);
@@ -1997,13 +2140,19 @@ export function CodexWakeupContent({
     }
 
     handledOpenTestRequestSignalRef.current = openTestRequest.signal;
+    const nextVariant = openTestRequest.variant ?? 'standard';
     const oauthAccountIdSet = new Set(oauthAccounts.map((account) => account.id));
-    const nextAccountIds = Array.from(new Set(openTestRequest.accountIds)).filter((accountId) =>
+    const nextAccountIds = Array.from(new Set(openTestRequest.accountIds ?? [])).filter((accountId) =>
       oauthAccountIdSet.has(accountId),
     );
 
     setTestModalError(null);
+    setTestModalVariant(nextVariant);
     setTestAccountFilters(createEmptyAccountPickerFilters());
+    setTestAccountSortBy(openTestRequest.defaultSortBy ?? (nextVariant === 'fullQuota' ? 'hourly' : 'default'));
+    setTestAccountSortDirection(
+      openTestRequest.defaultSortDirection ?? (nextVariant === 'fullQuota' ? 'desc' : 'asc'),
+    );
     setTestAccountIds(nextAccountIds);
     setTestModelPresetId(resolvedModelSelection.modelPresetId);
     setTestModel(resolvedModelSelection.model);
@@ -3324,7 +3473,11 @@ export function CodexWakeupContent({
           <div className="modal modal-lg wakeup-modal wakeup-test-modal codex-wakeup-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <button className="btn btn-secondary icon-only" onClick={closeTestModal} title={t('common.back', '返回')} aria-label={t('common.back', '返回')}><ChevronLeft size={14} /></button>
-              <h2>{t('codex.wakeup.testTitle')}</h2>
+              <h2>
+                {testModalVariant === 'fullQuota'
+                  ? t('codex.wakeup.fullQuotaTestTitle', '唤醒满额账号')
+                  : t('codex.wakeup.testTitle')}
+              </h2>
               <button className="modal-close" onClick={closeTestModal}>
                 <X />
               </button>
@@ -3332,7 +3485,11 @@ export function CodexWakeupContent({
             <div className="modal-body codex-wakeup-modal-body">
               <ModalErrorMessage message={testModalError} scrollKey={testModalErrorScrollKey} />
               <div className="wakeup-form-group">
-                <label>{t('codex.wakeup.testAccountsLabel')}</label>
+                <label>
+                  {testModalVariant === 'fullQuota'
+                    ? t('codex.wakeup.fullQuotaAccountsLabel', '选择要唤醒的账号')
+                    : t('codex.wakeup.testAccountsLabel')}
+                </label>
                 {renderAccountPickerFilters(
                   testAccountFilters,
                   setTestAccountFilters,
@@ -3347,6 +3504,15 @@ export function CodexWakeupContent({
                       }
                       return Array.from(new Set([...current, ...visibleIds]));
                     }),
+                  {
+                    sortBy: testAccountSortBy,
+                    sortDirection: testAccountSortDirection,
+                    onSortByChange: setTestAccountSortBy,
+                    onToggleSortDirection: () =>
+                      setTestAccountSortDirection((current) =>
+                        current === 'desc' ? 'asc' : 'desc',
+                      ),
+                  },
                 )}
                 {filteredTestAccounts.length === 0 ? (
                   <div className="codex-wakeup-account-empty">

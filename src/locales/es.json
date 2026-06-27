@@ -2220,14 +2220,8 @@
       "addTask": "Agregar tarea",
       "testNow": "Probar activación",
       "fullQuotaAction": "Activar cuentas completas",
-      "fullQuotaActionTitle": "Comprueba la lista actual cuenta por cuenta, preselecciona las cuentas con cuota completa y abre la prueba de activación.",
-      "fullQuotaDetecting": "Comprobando...",
-      "fullQuotaNoAccounts": "No hay cuentas OAuth comprobables en la lista actual.",
-      "fullQuotaDetectSuccess": "Se comprobaron {{checked}} cuentas y se preseleccionaron {{selected}} cuentas con cuota completa.",
-      "fullQuotaDetectPartial": "Se comprobaron {{checked}} cuentas, se preseleccionaron {{selected}} cuentas con cuota completa y {{failed}} no pudieron actualizarse.",
-      "fullQuotaDetectEmpty": "Comprobación finalizada. Ninguna cuenta cumple la condición de activación con cuota completa.",
-      "fullQuotaDetectEmptyWithFailed": "Se comprobaron {{checked}} cuentas. Ninguna cumple la condición de cuota completa y {{failed}} no pudieron actualizarse.",
-      "fullQuotaDetectFailed": "Error al comprobar cuentas con cuota completa: {{error}}",
+      "fullQuotaActionTitle": "Abre la prueba de activación de cuentas con cuota completa. Por defecto se ordenan por cuota 5h de mayor a menor.",
+      "fullQuotaNoAccounts": "No hay cuentas OAuth activables en la lista actual.",
       "enableAll": "Activar todas las tareas",
       "disableAll": "Desactivar todas las tareas",
       "refreshRuntime": "Volver a comprobar CLI",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Directo oficial",
       "officialChatRuntimePath": "Chat Codex oficial de ChatGPT",
       "officialChatRuntimeSource": "Directo oficial",
-      "officialChatRuntimeMessage": "Chat directo con cuenta OAuth"
+      "officialChatRuntimeMessage": "Chat directo con cuenta OAuth",
+      "fullQuotaTestTitle": "Activar cuentas completas",
+      "fullQuotaAccountsLabel": "Elige las cuentas para activar",
+      "accountSort": {
+        "default": "Orden predeterminado",
+        "hourly": "Por cuota 5h",
+        "weekly": "Por cuota semanal",
+        "email": "Por correo"
+      }
     },
     "sessionManager": {
       "title": "Gestor de sesiones",

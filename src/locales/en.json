@@ -2941,14 +2941,8 @@
       "addTask": "Add task",
       "testNow": "Test wakeup",
       "fullQuotaAction": "Wake full accounts",
-      "fullQuotaActionTitle": "Check the current account list one by one, preselect full-quota accounts, then open the wakeup test.",
-      "fullQuotaDetecting": "Checking...",
-      "fullQuotaNoAccounts": "No detectable OAuth accounts in the current list.",
-      "fullQuotaDetectSuccess": "Checked {{checked}} account(s) and preselected {{selected}} full-quota account(s).",
-      "fullQuotaDetectPartial": "Checked {{checked}} account(s), preselected {{selected}} full-quota account(s), and {{failed}} failed to refresh.",
-      "fullQuotaDetectEmpty": "Check finished. No accounts match the full-quota wakeup condition.",
-      "fullQuotaDetectEmptyWithFailed": "Checked {{checked}} account(s). No accounts match the full-quota wakeup condition, and {{failed}} failed to refresh.",
-      "fullQuotaDetectFailed": "Failed to check full-quota accounts: {{error}}",
+      "fullQuotaActionTitle": "Open the full-quota wakeup test. Accounts are sorted by 5h quota from high to low by default.",
+      "fullQuotaNoAccounts": "No wakeable OAuth accounts in the current list.",
       "enableAll": "Enable all tasks",
       "disableAll": "Disable all tasks",
       "refreshRuntime": "Recheck",
@@ -3099,6 +3093,14 @@
         "medium": "Medium",
         "high": "High",
         "xhigh": "XHigh"
+      },
+      "fullQuotaTestTitle": "Wake full accounts",
+      "fullQuotaAccountsLabel": "Choose accounts to wake",
+      "accountSort": {
+        "default": "Default order",
+        "hourly": "By 5h quota",
+        "weekly": "By weekly quota",
+        "email": "By email"
       }
     },
     "sessionManager": {

@@ -8695,6 +8695,18 @@
   gap: 10px;
 }
 
+.codex-wakeup-account-sort-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codex-wakeup-account-sort-direction {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+}
+
 .codex-wakeup-account-search {
   min-width: min(320px, 100%);
   flex: 1;

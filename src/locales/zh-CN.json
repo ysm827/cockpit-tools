@@ -2941,14 +2941,8 @@
       "addTask": "添加任务",
       "testNow": "测试唤醒",
       "fullQuotaAction": "唤醒满额账号",
-      "fullQuotaActionTitle": "逐个检测当前列表账号，自动勾选满额账号后打开测试唤醒。",
-      "fullQuotaDetecting": "检测中...",
-      "fullQuotaNoAccounts": "当前列表没有可检测的 OAuth 账号。",
-      "fullQuotaDetectSuccess": "已检测 {{checked}} 个账号，自动勾选 {{selected}} 个满额账号。",
-      "fullQuotaDetectPartial": "已检测 {{checked}} 个账号，自动勾选 {{selected}} 个满额账号，{{failed}} 个刷新失败。",
-      "fullQuotaDetectEmpty": "检测完成，没有符合满额唤醒条件的账号。",
-      "fullQuotaDetectEmptyWithFailed": "已检测 {{checked}} 个账号，没有符合满额唤醒条件的账号，{{failed}} 个刷新失败。",
-      "fullQuotaDetectFailed": "检测满额账号失败：{{error}}",
+      "fullQuotaActionTitle": "打开满额账号唤醒测试，账号默认按 5h 额度从高到低排序。",
+      "fullQuotaNoAccounts": "当前列表没有可唤醒的 OAuth 账号。",
       "enableAll": "开启所有任务",
       "disableAll": "关闭所有任务",
       "refreshRuntime": "重新检测",
@@ -3099,6 +3093,14 @@
         "medium": "中",
         "high": "高",
         "xhigh": "超高"
+      },
+      "fullQuotaTestTitle": "唤醒满额账号",
+      "fullQuotaAccountsLabel": "选择要唤醒的账号",
+      "accountSort": {
+        "default": "默认顺序",
+        "hourly": "按5h额度",
+        "weekly": "按周额度",
+        "email": "按邮箱"
       }
     },
     "sessionManager": {

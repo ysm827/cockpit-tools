@@ -2220,14 +2220,8 @@
       "addTask": "タスクを追加",
       "testNow": "ウェイクアップをテスト",
       "fullQuotaAction": "満額アカウントを起動",
-      "fullQuotaActionTitle": "現在の一覧を1件ずつ確認し、満額のアカウントを自動選択して起動テストを開きます。",
-      "fullQuotaDetecting": "確認中...",
-      "fullQuotaNoAccounts": "現在の一覧に確認可能な OAuth アカウントがありません。",
-      "fullQuotaDetectSuccess": "{{checked}} 件を確認し、満額アカウント {{selected}} 件を自動選択しました。",
-      "fullQuotaDetectPartial": "{{checked}} 件を確認し、満額アカウント {{selected}} 件を自動選択しました。{{failed}} 件は更新に失敗しました。",
-      "fullQuotaDetectEmpty": "確認が完了しました。満額起動条件に一致するアカウントはありません。",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}} 件を確認しました。満額条件に一致するアカウントはなく、{{failed}} 件は更新に失敗しました。",
-      "fullQuotaDetectFailed": "満額アカウントの確認に失敗しました: {{error}}",
+      "fullQuotaActionTitle": "満額アカウントの起動テストを開きます。アカウントは既定で 5h クォータの高い順に並びます。",
+      "fullQuotaNoAccounts": "現在の一覧に起動できる OAuth アカウントがありません。",
       "enableAll": "すべてのタスクを有効化",
       "disableAll": "すべてのタスクを無効化",
       "refreshRuntime": "CLI を再確認",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "公式直接接続",
       "officialChatRuntimePath": "ChatGPT 公式 Codex チャット",
       "officialChatRuntimeSource": "公式直接接続",
-      "officialChatRuntimeMessage": "OAuth アカウントで直接対話"
+      "officialChatRuntimeMessage": "OAuth アカウントで直接対話",
+      "fullQuotaTestTitle": "満額アカウントを起動",
+      "fullQuotaAccountsLabel": "起動するアカウントを選択",
+      "accountSort": {
+        "default": "既定の順序",
+        "hourly": "5h クォータ順",
+        "weekly": "週次クォータ順",
+        "email": "メール順"
+      }
     },
     "sessionManager": {
       "title": "セッション管理",

@@ -2220,14 +2220,8 @@
       "addTask": "Přidat úlohu",
       "testNow": "Otestovat probuzení",
       "fullQuotaAction": "Probudit plné účty",
-      "fullQuotaActionTitle": "Postupně zkontroluje účty v aktuálním seznamu, předvybere účty s plnou kvótou a otevře test probuzení.",
-      "fullQuotaDetecting": "Kontroluji...",
-      "fullQuotaNoAccounts": "V aktuálním seznamu nejsou žádné kontrolovatelné účty OAuth.",
-      "fullQuotaDetectSuccess": "Zkontrolováno {{checked}} účtů a předvybráno {{selected}} účtů s plnou kvótou.",
-      "fullQuotaDetectPartial": "Zkontrolováno {{checked}} účtů, předvybráno {{selected}} účtů s plnou kvótou a {{failed}} se nepodařilo obnovit.",
-      "fullQuotaDetectEmpty": "Kontrola dokončena. Žádné účty nesplňují podmínku probuzení plné kvóty.",
-      "fullQuotaDetectEmptyWithFailed": "Zkontrolováno {{checked}} účtů. Žádné účty nesplňují podmínku plné kvóty a {{failed}} se nepodařilo obnovit.",
-      "fullQuotaDetectFailed": "Kontrola účtů s plnou kvótou selhala: {{error}}",
+      "fullQuotaActionTitle": "Otevře test probuzení účtů s plnou kvótou. Účty jsou ve výchozím stavu seřazeny podle 5h kvóty od nejvyšší.",
+      "fullQuotaNoAccounts": "V aktuálním seznamu nejsou žádné probuditelné účty OAuth.",
       "enableAll": "Zapnout všechny úlohy",
       "disableAll": "Vypnout všechny úlohy",
       "refreshRuntime": "Znovu zkontrolovat CLI",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Přímé oficiální",
       "officialChatRuntimePath": "Oficiální chat Codex v ChatGPT",
       "officialChatRuntimeSource": "Přímé oficiální",
-      "officialChatRuntimeMessage": "Přímý chat účtem OAuth"
+      "officialChatRuntimeMessage": "Přímý chat účtem OAuth",
+      "fullQuotaTestTitle": "Probudit plné účty",
+      "fullQuotaAccountsLabel": "Vyberte účty k probuzení",
+      "accountSort": {
+        "default": "Výchozí pořadí",
+        "hourly": "Podle 5h kvóty",
+        "weekly": "Podle týdenní kvóty",
+        "email": "Podle e-mailu"
+      }
     },
     "sessionManager": {
       "title": "Správce relací",

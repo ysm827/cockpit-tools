@@ -2220,14 +2220,8 @@
       "addTask": "Adicionar tarefa",
       "testNow": "Testar ativação",
       "fullQuotaAction": "Despertar contas cheias",
-      "fullQuotaActionTitle": "Verifica as contas da lista atual uma a uma, pré-seleciona as contas com cota cheia e abre o teste de despertar.",
-      "fullQuotaDetecting": "Verificando...",
-      "fullQuotaNoAccounts": "Não há contas OAuth verificáveis na lista atual.",
-      "fullQuotaDetectSuccess": "{{checked}} conta(s) verificada(s) e {{selected}} conta(s) com cota cheia pré-selecionada(s).",
-      "fullQuotaDetectPartial": "{{checked}} conta(s) verificada(s), {{selected}} conta(s) com cota cheia pré-selecionada(s) e {{failed}} falharam ao atualizar.",
-      "fullQuotaDetectEmpty": "Verificação concluída. Nenhuma conta atende à condição de despertar com cota cheia.",
-      "fullQuotaDetectEmptyWithFailed": "{{checked}} conta(s) verificada(s). Nenhuma atende à condição de cota cheia e {{failed}} falharam ao atualizar.",
-      "fullQuotaDetectFailed": "Falha ao verificar contas com cota cheia: {{error}}",
+      "fullQuotaActionTitle": "Abre o teste de despertar de contas com cota cheia. As contas são ordenadas por cota 5h da maior para a menor por padrão.",
+      "fullQuotaNoAccounts": "Não há contas OAuth despertáveis na lista atual.",
       "enableAll": "Ativar todas as tarefas",
       "disableAll": "Desativar todas as tarefas",
       "refreshRuntime": "Verificar CLI novamente",
@@ -2389,7 +2383,15 @@
       "officialChatRuntimeTitle": "Direto oficial",
       "officialChatRuntimePath": "Chat Codex oficial do ChatGPT",
       "officialChatRuntimeSource": "Direto oficial",
-      "officialChatRuntimeMessage": "Chat direto com conta OAuth"
+      "officialChatRuntimeMessage": "Chat direto com conta OAuth",
+      "fullQuotaTestTitle": "Despertar contas cheias",
+      "fullQuotaAccountsLabel": "Escolha as contas para despertar",
+      "accountSort": {
+        "default": "Ordem padrão",
+        "hourly": "Por cota 5h",
+        "weekly": "Por cota semanal",
+        "email": "Por e-mail"
+      }
     },
     "sessionManager": {
       "title": "Gerenciador de sessões",
